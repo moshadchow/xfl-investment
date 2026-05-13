@@ -17,6 +17,15 @@ function Navbar() {
       <span className="font-semibold text-gray-800">XFL Investment</span>
       <div className="flex items-center gap-4">
         <span className="text-sm text-gray-600">{user.username}</span>
+        <span
+          className={
+            user.role.name === 'admin'
+              ? 'rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700'
+              : 'rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600'
+          }
+        >
+          {user.role.name === 'admin' ? 'Admin' : 'User'}
+        </span>
         <button
           onClick={handleLogout}
           className="rounded bg-gray-100 px-3 py-1 text-sm text-gray-700 hover:bg-gray-200"
