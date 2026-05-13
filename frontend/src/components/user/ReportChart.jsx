@@ -1,8 +1,51 @@
-function ReportChart() {
+import {
+  ComposedChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts'
+
+function ReportChart({ data }) {
+  if (data.length === 0) return null
+
   return (
-    <div className="p-4">
-      <h2 className="text-lg font-semibold text-gray-800">Report Chart — Step 04</h2>
-    </div>
+    <ResponsiveContainer width="100%" height={340}>
+      <ComposedChart data={data} margin={{ top: 8, right: 24, left: 16, bottom: 8 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+        <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+        <YAxis tick={{ fontSize: 12 }} />
+        <Tooltip />
+        <Legend />
+        <Line
+          type="monotone"
+          dataKey="investment"
+          name="Investment"
+          stroke="#3b82f6"
+          dot={false}
+          strokeWidth={2}
+        />
+        <Line
+          type="monotone"
+          dataKey="market_value"
+          name="Market Value"
+          stroke="#22c55e"
+          dot={false}
+          strokeWidth={2}
+        />
+        <Line
+          type="monotone"
+          dataKey="nav"
+          name="NAV"
+          stroke="#f97316"
+          dot={false}
+          strokeWidth={2}
+        />
+      </ComposedChart>
+    </ResponsiveContainer>
   )
 }
 
