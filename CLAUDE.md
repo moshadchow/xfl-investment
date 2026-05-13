@@ -1,4 +1,4 @@
-# CLAUDE.md — XYZ Investment Reporting Software
+# CLAUDE.md — XFL Investment Reporting Software
 
 ## Project Overview
 Mini investment reporting tool. Admin inputs fund data; users view reports + charts.
@@ -19,7 +19,7 @@ Mini investment reporting tool. Admin inputs fund data; users view reports + cha
 ## Repository Structure
 
 ```
-xyz-investment/
+XFL-investment/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py

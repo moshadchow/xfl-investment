@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+sqlmodel
+pymysql
+cryptography
+passlib[bcrypt]
+python-multipart
+pydantic-settings
+itsdangerous
+starlette
