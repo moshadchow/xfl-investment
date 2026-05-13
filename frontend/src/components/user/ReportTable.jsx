@@ -1,7 +1,34 @@
-function ReportTable() {
+function ReportTable({ data }) {
   return (
-    <div className="p-4">
-      <h2 className="text-lg font-semibold text-gray-800">Report Table — Step 04</h2>
+    <div className="overflow-x-auto">
+      <table className="w-full border-collapse rounded border border-gray-200 bg-white text-sm">
+        <thead>
+          <tr className="bg-gray-100 text-left text-gray-600">
+            <th className="px-4 py-2 font-medium">Date</th>
+            <th className="px-4 py-2 font-medium">Investment</th>
+            <th className="px-4 py-2 font-medium">Market Value</th>
+            <th className="px-4 py-2 font-medium">NAV</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.length === 0 ? (
+            <tr>
+              <td colSpan={4} className="px-4 py-4 text-center text-gray-400">
+                No entries in this date range.
+              </td>
+            </tr>
+          ) : (
+            data.map((entry) => (
+              <tr key={entry.id} className="border-t border-gray-200">
+                <td className="px-4 py-2 text-gray-800">{entry.date}</td>
+                <td className="px-4 py-2 text-gray-800">{Number(entry.investment).toFixed(4)}</td>
+                <td className="px-4 py-2 text-gray-800">{Number(entry.market_value).toFixed(4)}</td>
+                <td className="px-4 py-2 text-gray-800">{Number(entry.nav).toFixed(4)}</td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   )
 }
