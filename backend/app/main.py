@@ -4,14 +4,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
 
+from sqlmodel import Session
+
 from .config import settings
-from .database import create_db_and_tables
+from .database import create_db_and_tables, engine, seed_roles
 from . import models  # noqa: F401 — registers all models with SQLModel.metadata
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
+    with Session(engine) as session:
+        seed_roles(session)
     yield
 
 
