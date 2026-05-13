@@ -24,6 +24,11 @@ def list_fund_entries(
     session: Session = Depends(get_session),
     _: User = Depends(require_admin),
 ):
+    if to_date < from_date:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="to_date must be on or after from_date",
+        )
     return get_fund_entries(session, from_date, to_date)
 
 

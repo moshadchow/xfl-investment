@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { useAuth } from './hooks/useAuth'
+import ErrorBoundary from './components/layout/ErrorBoundary'
 import PrivateRoute from './components/layout/PrivateRoute'
 import Login from './pages/Login'
 import AdminDashboard from './pages/AdminDashboard'
@@ -17,23 +18,25 @@ function LoginGuard() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<LoginGuard />} />
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<LoginGuard />} />
 
-          <Route element={<PrivateRoute adminOnly />}>
-            <Route path="/admin" element={<AdminDashboard />} />
-          </Route>
+            <Route element={<PrivateRoute adminOnly />}>
+              <Route path="/admin" element={<AdminDashboard />} />
+            </Route>
 
-          <Route element={<PrivateRoute />}>
-            <Route path="/dashboard" element={<UserDashboard />} />
-          </Route>
+            <Route element={<PrivateRoute />}>
+              <Route path="/dashboard" element={<UserDashboard />} />
+            </Route>
 
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </AuthProvider>
-    </BrowserRouter>
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }
 

@@ -10,6 +10,7 @@ function UserManager() {
   const [actionError, setActionError] = useState(null)
   const [formError, setFormError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     Promise.all([client.get('/users'), client.get('/roles')])
@@ -18,6 +19,7 @@ function UserManager() {
         setRoles(rolesRes.data)
       })
       .catch(() => setActionError('Failed to load data'))
+      .finally(() => setLoading(false))
   }, [])
 
   const roleMap = Object.fromEntries(roles.map((r) => [r.id, r.name]))
@@ -86,7 +88,13 @@ function UserManager() {
             </tr>
           </thead>
           <tbody>
-            {users.length === 0 ? (
+            {loading ? (
+              <tr>
+                <td colSpan={4} className="px-4 py-4 text-center text-gray-400">
+                  Loading…
+                </td>
+              </tr>
+            ) : users.length === 0 ? (
               <tr>
                 <td colSpan={4} className="px-4 py-4 text-center text-gray-400">
                   No users found.
