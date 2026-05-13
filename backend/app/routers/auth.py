@@ -6,12 +6,12 @@ from ..database import get_session
 from ..deps import get_current_user
 from ..models.user import User
 from ..schemas.auth import LoginRequest
-from ..schemas.user import UserRead, UserWithRole
+from ..schemas.user import UserWithRole
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/login", response_model=UserRead)
+@router.post("/login", response_model=UserWithRole)
 def login(data: LoginRequest, request: Request, session: Session = Depends(get_session)):
     user = get_user_by_username(session, data.username)
     if user is None or not verify_password(data.password, user.hashed_password):

@@ -19,14 +19,18 @@ function UserDashboard() {
   const [fromDate, setFromDate] = useState(firstOfMonth)
   const [toDate, setToDate] = useState(today)
   const [fetchError, setFetchError] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   const fetchEntries = useCallback(async (from, to) => {
     setFetchError(null)
+    setLoading(true)
     try {
       const res = await client.get('/report', { params: { from_date: from, to_date: to } })
       setEntries(res.data)
     } catch (err) {
       setFetchError(err.response?.data?.detail ?? 'Failed to load report data')
+    } finally {
+      setLoading(false)
     }
   }, [])
 
@@ -45,7 +49,7 @@ function UserDashboard() {
       <div className="flex flex-1">
         <Sidebar />
         <main className="flex-1 bg-gray-50 p-8">
-          <h1 className="mb-8 text-2xl font-bold text-gray-800">Dashboard</h1>
+          <h1 className="mb-8 text-2xl font-bold text-gray-800">My Report</h1>
 
           {/* Date range filter */}
           <form onSubmit={handleFilterSubmit} className="mb-6 flex flex-wrap items-end gap-3">
@@ -85,11 +89,11 @@ function UserDashboard() {
           {/* Data table */}
           <div className="mb-8">
             <h2 className="mb-3 text-lg font-semibold text-gray-700">Fund Data</h2>
-            <ReportTable data={entries} />
+            <ReportTable data={entries} loading={loading} />
           </div>
 
           {/* Chart */}
-          {entries.length > 0 && (
+          {!loading && entries.length > 0 && (
             <div>
               <h2 className="mb-3 text-lg font-semibold text-gray-700">Performance Chart</h2>
               <div className="rounded border border-gray-200 bg-white p-4">

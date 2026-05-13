@@ -1,4 +1,4 @@
-function ReportTable({ data }) {
+function ReportTable({ data, loading }) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse rounded border border-gray-200 bg-white text-sm">
@@ -11,7 +11,13 @@ function ReportTable({ data }) {
           </tr>
         </thead>
         <tbody>
-          {data.length === 0 ? (
+          {loading ? (
+            <tr>
+              <td colSpan={4} className="px-4 py-4 text-center text-gray-400">
+                Loading…
+              </td>
+            </tr>
+          ) : data.length === 0 ? (
             <tr>
               <td colSpan={4} className="px-4 py-4 text-center text-gray-400">
                 No entries in this date range.

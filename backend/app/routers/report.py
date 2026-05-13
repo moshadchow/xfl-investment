@@ -1,6 +1,6 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 
 from ..crud.fund_data import get_fund_entries
@@ -19,4 +19,9 @@ def get_report(
     session: Session = Depends(get_session),
     _: User = Depends(get_current_user),
 ):
+    if to_date < from_date:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="to_date must be on or after from_date",
+        )
     return get_fund_entries(session, from_date, to_date)

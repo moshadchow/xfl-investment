@@ -16,10 +16,9 @@ function Login() {
     setSubmitting(true)
     setError(null)
     try {
-      await client.post('/auth/login', { username, password })
-      const meRes = await client.get('/auth/me')
-      setUser(meRes.data)
-      navigate(meRes.data.role.name === 'admin' ? '/admin' : '/dashboard', { replace: true })
+      const loginRes = await client.post('/auth/login', { username, password })
+      setUser(loginRes.data)
+      navigate(loginRes.data.role.name === 'admin' ? '/admin' : '/dashboard', { replace: true })
     } catch (err) {
       setError(err.response?.data?.detail ?? 'Login failed')
     } finally {
