@@ -23,3 +23,8 @@ class UserWithRole(SQLModel):
     username: str
     is_active: bool
     role: Optional[RoleRead] = None
+
+
+class UserUpdate(SQLModel):
+    is_active: Optional[bool] = None
+    role_id: Optional[int] = None

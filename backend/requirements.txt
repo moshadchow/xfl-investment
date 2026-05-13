@@ -4,6 +4,7 @@ sqlmodel
 pymysql
 cryptography
 passlib[bcrypt]
+bcrypt==4.0.1
 python-multipart
 pydantic-settings
 itsdangerous
