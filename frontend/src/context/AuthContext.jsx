@@ -15,8 +15,17 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false))
   }, [])
 
+  async function logout() {
+    try {
+      await client.post('/auth/logout')
+    } catch {
+      // ignore network errors — clear local state regardless
+    }
+    setUser(null)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, setUser, loading }}>
+    <AuthContext.Provider value={{ user, setUser, loading, logout }}>
       {children}
     </AuthContext.Provider>
   )
