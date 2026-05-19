@@ -13,8 +13,8 @@ class FundData(SQLModel, table=True):
 
     id: Optional[int] = Field(default=None, primary_key=True)
     date: date
-    investment: Decimal
-    market_value: Decimal
-    nav: Decimal
+    investment: Decimal = Field(max_digits=18, decimal_places=4)
+    market_value: Decimal = Field(max_digits=18, decimal_places=4)
+    nav: Decimal = Field(max_digits=18, decimal_places=4)
     created_by: Optional[int] = Field(default=None, foreign_key="user.id")
     creator: Optional["User"] = Relationship(back_populates="fund_entries")

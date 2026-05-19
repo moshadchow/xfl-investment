@@ -2,24 +2,24 @@ from datetime import date
 from decimal import Decimal
 from typing import Optional
 
-from sqlmodel import SQLModel
+from pydantic import BaseModel
 
 
-class FundDataCreate(SQLModel):
+class FundDataCreate(BaseModel):
     date: date
     investment: Decimal
     market_value: Decimal
     nav: Decimal
 
 
-class FundDataUpdate(SQLModel):
-    date: Optional[date] = None
+class FundDataUpdate(BaseModel):
+    date: date
     investment: Optional[Decimal] = None
     market_value: Optional[Decimal] = None
     nav: Optional[Decimal] = None
 
 
-class FundDataRead(SQLModel):
+class FundDataRead(BaseModel):
     id: int
     date: date
     investment: Decimal

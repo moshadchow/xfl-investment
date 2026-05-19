@@ -3,12 +3,20 @@ from datetime import date
 from sqlmodel import Session, select
 
 from ..models.fund_data import FundData
-from ..schemas.fund_data import FundDataCreate, FundDataUpdate
+from ..schemas.fund_data import FundDataCreate, FundDataRead, FundDataUpdate
+
+_COLUMNS = ["id", "date", "investment", "market_value", "nav", "created_by"]
+
+
+def _to_read(entry: FundData, session: Session) -> FundDataRead:
+    """Serialize ORM entry to FundDataRead without triggering lazy loads."""
+    session.refresh(entry, attribute_names=_COLUMNS)
+    return FundDataRead.model_validate({c: getattr(entry, c) for c in _COLUMNS})
 
 
 def create_fund_entry(
     session: Session, data: FundDataCreate, created_by: int
-) -> FundData:
+) -> FundDataRead:
     entry = FundData(
         date=data.date,
         investment=data.investment,
@@ -18,21 +26,19 @@ def create_fund_entry(
     )
     session.add(entry)
     session.commit()
-    session.refresh(entry)
-    return entry
+    return _to_read(entry, session)
 
 
 def get_fund_entries(
     session: Session, from_date: date, to_date: date
-) -> list[FundData]:
-    return list(
-        session.exec(
-            select(FundData).where(
-                FundData.date >= from_date,
-                FundData.date <= to_date,
-            )
-        ).all()
-    )
+) -> list[FundDataRead]:
+    results = session.exec(
+        select(FundData).where(
+            FundData.date >= from_date,
+            FundData.date <= to_date,
+        )
+    ).all()
+    return [_to_read(e, session) for e in results]
 
 
 def get_fund_entry_by_id(session: Session, entry_id: int) -> FundData | None:
@@ -41,7 +47,7 @@ def get_fund_entry_by_id(session: Session, entry_id: int) -> FundData | None:
 
 def update_fund_entry(
     session: Session, entry_id: int, data: FundDataUpdate
-) -> FundData | None:
+) -> FundDataRead | None:
     entry = session.get(FundData, entry_id)
     if not entry:
         return None
@@ -49,8 +55,7 @@ def update_fund_entry(
         setattr(entry, key, value)
     session.add(entry)
     session.commit()
-    session.refresh(entry)
-    return entry
+    return _to_read(entry, session)
 
 
 def delete_fund_entry(session: Session, entry_id: int) -> bool:
