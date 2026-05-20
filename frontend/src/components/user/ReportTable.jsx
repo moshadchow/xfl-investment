@@ -11,18 +11,19 @@ function ReportTable({ data, loading }) {
             <th className="px-4 py-2 font-medium">Market Value</th>
             <th className="px-4 py-2 font-medium">NAV</th>
             <th className="px-4 py-2 font-medium">Gain/Loss</th>
+            <th className="px-4 py-2 font-medium">Company</th>
           </tr>
         </thead>
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan={5} className="px-4 py-4 text-center text-gray-400">
+              <td colSpan={6} className="px-4 py-4 text-center text-gray-400">
                 Loading…
               </td>
             </tr>
           ) : sorted.length === 0 ? (
             <tr>
-              <td colSpan={5} className="px-4 py-4 text-center text-gray-400">
+              <td colSpan={6} className="px-4 py-4 text-center text-gray-400">
                 No entries in this date range.
               </td>
             </tr>
@@ -41,6 +42,7 @@ function ReportTable({ data, loading }) {
                   <td className="px-4 py-2 text-gray-800">
                     {gainLoss === null ? '—' : gainLoss.toFixed(0)}
                   </td>
+                  <td className="px-4 py-2 text-gray-500">{entry.company_name ?? '—'}</td>
                 </tr>
               )
             })

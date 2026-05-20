@@ -16,16 +16,20 @@ function firstOfMonth() {
 
 function UserDashboard() {
   const [entries, setEntries] = useState([])
+  const [companies, setCompanies] = useState([])
+  const [companyId, setCompanyId] = useState('')
   const [fromDate, setFromDate] = useState(firstOfMonth)
   const [toDate, setToDate] = useState(today)
   const [fetchError, setFetchError] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchEntries = useCallback(async (from, to) => {
+  const fetchEntries = useCallback(async (from, to, cid) => {
     setFetchError(null)
     setLoading(true)
     try {
-      const res = await client.get('/report', { params: { from_date: from, to_date: to } })
+      const params = { from_date: from, to_date: to }
+      if (cid) params.company_id = cid
+      const res = await client.get('/report', { params })
       setEntries(res.data)
     } catch (err) {
       setFetchError(err.response?.data?.detail ?? 'Failed to load report data')
@@ -35,12 +39,13 @@ function UserDashboard() {
   }, [])
 
   useEffect(() => {
-    fetchEntries(fromDate, toDate)
+    fetchEntries(fromDate, toDate, companyId)
+    client.get('/companies/list').then((res) => setCompanies(res.data))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleFilterSubmit(e) {
     e.preventDefault()
-    fetchEntries(fromDate, toDate)
+    fetchEntries(fromDate, toDate, companyId)
   }
 
   return (
@@ -70,6 +75,19 @@ function UserDashboard() {
                 onChange={(e) => setToDate(e.target.value)}
                 className="rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-gray-600">Company</label>
+              <select
+                value={companyId}
+                onChange={(e) => setCompanyId(e.target.value)}
+                className="rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Companies</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
             </div>
             <button
               type="submit"
