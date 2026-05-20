@@ -10,10 +10,11 @@ function firstOfMonth() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
 }
 
-const EMPTY_FORM = { date: '', investment: '', market_value: '', nav: '' }
+const EMPTY_FORM = { date: '', investment: '', market_value: '', nav: '', company_id: '' }
 
 function FundDataForm() {
   const [entries, setEntries] = useState([])
+  const [companies, setCompanies] = useState([])
   const [fromDate, setFromDate] = useState(firstOfMonth)
   const [toDate, setToDate] = useState(today)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -34,6 +35,7 @@ function FundDataForm() {
 
   useEffect(() => {
     fetchEntries(fromDate, toDate)
+    client.get('/companies').then((res) => setCompanies(res.data))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleFilterSubmit(e) {
@@ -53,6 +55,7 @@ function FundDataForm() {
       investment: Number(entry.investment).toFixed(0),
       market_value: Number(entry.market_value).toFixed(0),
       nav: Number(entry.nav).toFixed(2),
+      company_id: entry.company_id ?? '',
     })
     setFormError(null)
   }
@@ -72,6 +75,7 @@ function FundDataForm() {
       investment: Number(form.investment),
       market_value: Number(form.market_value),
       nav: Number(form.nav),
+      company_id: form.company_id ? Number(form.company_id) : null,
     }
     try {
       if (editingId === null) {
@@ -150,7 +154,7 @@ function FundDataForm() {
               <th className="px-4 py-2 font-medium">Market Value</th>
               <th className="px-4 py-2 font-medium">NAV</th>
               <th className="px-4 py-2 font-medium">Gain/Loss</th>
-              <th className="px-4 py-2 font-medium">Created By</th>
+              <th className="px-4 py-2 font-medium">Company</th>
               <th className="px-4 py-2 font-medium">Actions</th>
             </tr>
           </thead>
@@ -161,6 +165,7 @@ function FundDataForm() {
                   No entries in this date range.
                 </td>
               </tr>
+
             ) : (
               [...entries]
                 .sort((a, b) => a.date.localeCompare(b.date))
@@ -178,7 +183,7 @@ function FundDataForm() {
                   <td className="px-4 py-2 text-gray-800">
                     {gainLoss === null ? '—' : gainLoss.toFixed(0)}
                   </td>
-                  <td className="px-4 py-2 text-gray-500">{entry.created_by ?? '—'}</td>
+                  <td className="px-4 py-2 text-gray-500">{entry.company_name ?? '—'}</td>
                   <td className="flex gap-2 px-4 py-2">
                     <button
                       onClick={() => handleEdit(entry)}
@@ -256,6 +261,20 @@ function FundDataForm() {
               onChange={handleFormChange}
               className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-gray-600">Company</label>
+            <select
+              name="company_id"
+              value={form.company_id}
+              onChange={handleFormChange}
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">None</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
           </div>
         </div>
         {formError && <p className="text-sm text-red-600">{formError}</p>}
