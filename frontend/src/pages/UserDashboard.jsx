@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import Navbar from '../components/layout/Navbar'
 import Sidebar from '../components/layout/Sidebar'
 import ReportTable from '../components/user/ReportTable'
-import ReportChart from '../components/user/ReportChart'
+import GainLossChart from '../components/user/GainLossChart'
 import client from '../api/client'
 
 function today() {
@@ -92,12 +92,12 @@ function UserDashboard() {
             <ReportTable data={entries} loading={loading} />
           </div>
 
-          {/* Chart */}
+          {/* Gain/Loss Chart */}
           {!loading && entries.length > 0 && (
-            <div>
-              <h2 className="mb-3 text-lg font-semibold text-gray-700">Performance Chart</h2>
+            <div className="mt-6">
+              <h2 className="mb-3 text-lg font-semibold text-gray-700">Gain/Loss Chart</h2>
               <div className="rounded border border-gray-200 bg-white p-4">
-                <ReportChart data={entries} />
+                <GainLossChart data={entries} />
               </div>
             </div>
           )}

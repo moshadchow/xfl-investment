@@ -50,9 +50,9 @@ function FundDataForm() {
     setEditingId(entry.id)
     setForm({
       date: entry.date,
-      investment: entry.investment,
-      market_value: entry.market_value,
-      nav: entry.nav,
+      investment: Number(entry.investment).toFixed(0),
+      market_value: Number(entry.market_value).toFixed(0),
+      nav: Number(entry.nav).toFixed(2),
     })
     setFormError(null)
   }
@@ -84,7 +84,8 @@ function FundDataForm() {
       }
       setForm(EMPTY_FORM)
     } catch (err) {
-      setFormError(err.response?.data?.detail ?? 'Failed to save entry')
+      const detail = err.response?.data?.detail
+      setFormError(typeof detail === 'string' ? detail : 'Failed to save entry')
     } finally {
       setSubmitting(false)
     }
@@ -148,6 +149,7 @@ function FundDataForm() {
               <th className="px-4 py-2 font-medium">Investment</th>
               <th className="px-4 py-2 font-medium">Market Value</th>
               <th className="px-4 py-2 font-medium">NAV</th>
+              <th className="px-4 py-2 font-medium">Gain/Loss</th>
               <th className="px-4 py-2 font-medium">Created By</th>
               <th className="px-4 py-2 font-medium">Actions</th>
             </tr>
@@ -155,17 +157,27 @@ function FundDataForm() {
           <tbody>
             {entries.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-4 text-center text-gray-400">
+                <td colSpan={7} className="px-4 py-4 text-center text-gray-400">
                   No entries in this date range.
                 </td>
               </tr>
             ) : (
-              entries.map((entry) => (
+              [...entries]
+                .sort((a, b) => a.date.localeCompare(b.date))
+                .map((entry, i, sorted) => {
+                  const gainLoss =
+                    i > 0
+                      ? Number(entry.market_value) - Number(sorted[i - 1].market_value)
+                      : null
+                  return (
                 <tr key={entry.id} className="border-t border-gray-200">
                   <td className="px-4 py-2 text-gray-800">{entry.date}</td>
-                  <td className="px-4 py-2 text-gray-800">{Number(entry.investment).toFixed(4)}</td>
-                  <td className="px-4 py-2 text-gray-800">{Number(entry.market_value).toFixed(4)}</td>
-                  <td className="px-4 py-2 text-gray-800">{Number(entry.nav).toFixed(4)}</td>
+                  <td className="px-4 py-2 text-gray-800">{Number(entry.investment).toFixed(0)}</td>
+                  <td className="px-4 py-2 text-gray-800">{Number(entry.market_value).toFixed(0)}</td>
+                  <td className="px-4 py-2 text-gray-800">{Number(entry.nav).toFixed(2)}</td>
+                  <td className="px-4 py-2 text-gray-800">
+                    {gainLoss === null ? '—' : gainLoss.toFixed(0)}
+                  </td>
                   <td className="px-4 py-2 text-gray-500">{entry.created_by ?? '—'}</td>
                   <td className="flex gap-2 px-4 py-2">
                     <button
@@ -182,7 +194,8 @@ function FundDataForm() {
                     </button>
                   </td>
                 </tr>
-              ))
+                  )
+                })
             )}
           </tbody>
         </table>
@@ -211,7 +224,7 @@ function FundDataForm() {
               type="number"
               name="investment"
               required
-              step="0.0001"
+              step="1"
               min="0"
               value={form.investment}
               onChange={handleFormChange}
@@ -224,7 +237,7 @@ function FundDataForm() {
               type="number"
               name="market_value"
               required
-              step="0.0001"
+              step="1"
               min="0"
               value={form.market_value}
               onChange={handleFormChange}
@@ -237,7 +250,7 @@ function FundDataForm() {
               type="number"
               name="nav"
               required
-              step="0.0001"
+              step="0.01"
               min="0"
               value={form.nav}
               onChange={handleFormChange}
