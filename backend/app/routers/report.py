@@ -1,6 +1,7 @@
 from datetime import date
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlmodel import Session
 
 from ..crud.fund_data import get_fund_entries
@@ -16,6 +17,7 @@ router = APIRouter(prefix="/report", tags=["report"])
 def get_report(
     from_date: date,
     to_date: date,
+    company_id: Optional[int] = Query(default=None),
     session: Session = Depends(get_session),
     _: User = Depends(get_current_user),
 ):
@@ -24,4 +26,4 @@ def get_report(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="to_date must be on or after from_date",
         )
-    return get_fund_entries(session, from_date, to_date)
+    return get_fund_entries(session, from_date, to_date, company_id=company_id)

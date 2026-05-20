@@ -5,13 +5,16 @@ from sqlmodel import Session, select
 from ..models.fund_data import FundData
 from ..schemas.fund_data import FundDataCreate, FundDataRead, FundDataUpdate
 
-_COLUMNS = ["id", "date", "investment", "market_value", "nav", "created_by"]
+_COLUMNS = ["id", "date", "investment", "market_value", "nav", "created_by", "company_id"]
 
 
 def _to_read(entry: FundData, session: Session) -> FundDataRead:
     """Serialize ORM entry to FundDataRead without triggering lazy loads."""
-    session.refresh(entry, attribute_names=_COLUMNS)
-    return FundDataRead.model_validate({c: getattr(entry, c) for c in _COLUMNS})
+    session.refresh(entry, attribute_names=_COLUMNS + ["company"])
+    company_name = entry.company.name if entry.company else None
+    data = {c: getattr(entry, c) for c in _COLUMNS}
+    data["company_name"] = company_name
+    return FundDataRead.model_validate(data)
 
 
 def create_fund_entry(
@@ -23,6 +26,7 @@ def create_fund_entry(
         market_value=data.market_value,
         nav=data.nav,
         created_by=created_by,
+        company_id=data.company_id,
     )
     session.add(entry)
     session.commit()
@@ -30,14 +34,15 @@ def create_fund_entry(
 
 
 def get_fund_entries(
-    session: Session, from_date: date, to_date: date
+    session: Session, from_date: date, to_date: date, company_id: int | None = None
 ) -> list[FundDataRead]:
-    results = session.exec(
-        select(FundData).where(
-            FundData.date >= from_date,
-            FundData.date <= to_date,
-        )
-    ).all()
+    stmt = select(FundData).where(
+        FundData.date >= from_date,
+        FundData.date <= to_date,
+    )
+    if company_id is not None:
+        stmt = stmt.where(FundData.company_id == company_id)
+    results = session.exec(stmt).all()
     return [_to_read(e, session) for e in results]
 
 
