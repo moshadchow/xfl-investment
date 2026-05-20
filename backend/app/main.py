@@ -9,7 +9,7 @@ from sqlmodel import Session
 from .config import settings
 from .database import create_db_and_tables, engine, seed_roles
 from . import models  # noqa: F401 — registers all models with SQLModel.metadata
-from .routers import auth, roles, users, fund_data, report
+from .routers import auth, companies, roles, users, fund_data, report
 
 
 @asynccontextmanager
@@ -43,6 +43,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router, prefix="/api/v1", tags=["auth"])
+app.include_router(companies.router, prefix="/api/v1", tags=["companies"])
 app.include_router(roles.router, prefix="/api/v1", tags=["roles"])
 app.include_router(users.router, prefix="/api/v1", tags=["users"])
 app.include_router(fund_data.router, prefix="/api/v1", tags=["fund-data"])

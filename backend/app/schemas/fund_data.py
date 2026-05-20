@@ -10,6 +10,7 @@ class FundDataCreate(BaseModel):
     investment: Decimal
     market_value: Decimal
     nav: Decimal
+    company_id: Optional[int] = None
 
 
 class FundDataUpdate(BaseModel):
@@ -17,6 +18,7 @@ class FundDataUpdate(BaseModel):
     investment: Optional[Decimal] = None
     market_value: Optional[Decimal] = None
     nav: Optional[Decimal] = None
+    company_id: Optional[int] = None
 
 
 class FundDataRead(BaseModel):
@@ -26,3 +28,5 @@ class FundDataRead(BaseModel):
     market_value: Decimal
     nav: Decimal
     created_by: Optional[int] = None
+    company_id: Optional[int] = None
+    company_name: Optional[str] = None
