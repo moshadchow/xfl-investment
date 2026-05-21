@@ -54,7 +54,7 @@ function UserDashboard() {
       <div className="flex flex-1">
         <Sidebar />
         <main className="flex-1 bg-gray-50 p-8">
-          <h1 className="mb-8 text-2xl font-bold text-gray-800">My Report</h1>
+          <h1 className="mb-8 text-2xl font-bold text-gray-800">My Investment</h1>
 
           {/* Date range filter */}
           <form onSubmit={handleFilterSubmit} className="mb-6 flex flex-wrap items-end gap-3">

@@ -8,10 +8,11 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
+import { formatBDT0, formatBDT2 } from '../../utils/format'
 
 function formatValue(value, name) {
-  if (name === 'NAV') return Number(value).toFixed(2)
-  return Number(value).toFixed(0)
+  if (name === 'NAV') return formatBDT2(value)
+  return formatBDT0(value)
 }
 
 function ReportChart({ data }) {

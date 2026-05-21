@@ -7,6 +7,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+import { formatBDT0 } from '../../utils/format'
 
 function GainLossChart({ data }) {
   const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
@@ -26,7 +27,7 @@ function GainLossChart({ data }) {
         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
         <XAxis dataKey="date" tick={{ fontSize: 12 }} />
         <YAxis tick={{ fontSize: 12 }} />
-        <Tooltip formatter={(value) => value.toFixed(0)} />
+        <Tooltip formatter={(value) => formatBDT0(value)} />
         <Bar
           dataKey="gainLoss"
           name="Gain/Loss"

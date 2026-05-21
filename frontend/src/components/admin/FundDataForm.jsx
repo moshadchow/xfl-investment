@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import client from '../../api/client'
+import { formatBDT0, formatBDT2 } from '../../utils/format'
 
 function today() {
   return new Date().toISOString().slice(0, 10)
@@ -177,11 +178,11 @@ function FundDataForm() {
                   return (
                 <tr key={entry.id} className="border-t border-gray-200">
                   <td className="px-4 py-2 text-gray-800">{entry.date}</td>
-                  <td className="px-4 py-2 text-gray-800">{Number(entry.investment).toFixed(0)}</td>
-                  <td className="px-4 py-2 text-gray-800">{Number(entry.market_value).toFixed(0)}</td>
-                  <td className="px-4 py-2 text-gray-800">{Number(entry.nav).toFixed(2)}</td>
+                  <td className="px-4 py-2 text-gray-800">{formatBDT0(entry.investment)}</td>
+                  <td className="px-4 py-2 text-gray-800">{formatBDT0(entry.market_value)}</td>
+                  <td className="px-4 py-2 text-gray-800">{formatBDT2(entry.nav)}</td>
                   <td className="px-4 py-2 text-gray-800">
-                    {gainLoss === null ? '—' : gainLoss.toFixed(0)}
+                    {gainLoss === null ? '—' : formatBDT0(gainLoss)}
                   </td>
                   <td className="px-4 py-2 text-gray-500">{entry.company_name ?? '—'}</td>
                   <td className="flex gap-2 px-4 py-2">
