@@ -11,11 +11,11 @@ import { formatBDT0 } from '../../utils/format'
 
 function GainLossChart({ data }) {
   const sorted = [...data].sort((a, b) => a.date.localeCompare(b.date))
-  const chartData = sorted.map((entry, i) => ({
+  const chartData = sorted.map((entry) => ({
     date: entry.date,
     gainLoss:
-      i > 0
-        ? Number(entry.market_value) - Number(sorted[i - 1].market_value)
+      entry.investment != null && entry.market_value != null
+        ? Number(entry.investment) - Number(entry.market_value)
         : 0,
   }))
 

@@ -170,10 +170,10 @@ function FundDataForm() {
             ) : (
               [...entries]
                 .sort((a, b) => a.date.localeCompare(b.date))
-                .map((entry, i, sorted) => {
+                .map((entry) => {
                   const gainLoss =
-                    i > 0
-                      ? Number(entry.market_value) - Number(sorted[i - 1].market_value)
+                    entry.investment != null && entry.market_value != null
+                      ? Number(entry.investment) - Number(entry.market_value)
                       : null
                   return (
                 <tr key={entry.id} className="border-t border-gray-200">

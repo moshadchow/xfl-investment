@@ -1,0 +1,41 @@
+==========================
+Jump Server:
+103.244.247.59:8449
+UID: xflmchowdhury
+Pass: M!crolab_2025
+==========================
+
+puTTy:
+192.168.101.34
+mchowdhury
+Moshad@2026$
+
+DB:(mySQL)
+UID: xfluser
+Pass: Xflpass_2026
+
+Run the service:
+Path: root/opt/fastapi
+
+#fastapi run command:
+1. source/myenv/bin/activate
+2. uvicorn main:app --host 192.168.101.238 --port 8080 --reload
+
+Path: 
+root/opt/backend
+
+#django backend run command
+
+1. source/v_api/bin/activate
+2. uvicorn nls_backend.asgi:application --host 192.168.101.238 --port 8000
+
+3. Fronend-->ReactJS
+Path: root/var/www/
+- django_media
+- django_static
+- reactapp
+
+4. nginx
+Path: root/etc/conf.d
+- nlisecurities.conf
+
