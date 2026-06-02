@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import client from '../../api/client'
 
-const EMPTY_FORM = { name: '' }
+const EMPTY_FORM = { name: '', is_active: true }
 
 function CompanyManager() {
   const [companies, setCompanies] = useState([])
@@ -16,12 +16,13 @@ function CompanyManager() {
   }, [])
 
   function handleFormChange(e) {
-    setForm({ name: e.target.value })
+    const { name, value, type, checked } = e.target
+    setForm((current) => ({ ...current, [name]: type === 'checkbox' ? checked : value }))
   }
 
   function handleEdit(company) {
     setEditingId(company.id)
-    setForm({ name: company.name })
+    setForm({ name: company.name, is_active: company.is_active })
     setFormError(null)
   }
 
@@ -42,11 +43,11 @@ function CompanyManager() {
     setFormError(null)
     try {
       if (editingId) {
-        const res = await client.put(`/companies/${editingId}`, { name })
+        const res = await client.put(`/companies/${editingId}`, { name, is_active: form.is_active })
         setCompanies((prev) => prev.map((c) => (c.id === editingId ? res.data : c)))
         setEditingId(null)
       } else {
-        const res = await client.post('/companies', { name })
+        const res = await client.post('/companies', { name, is_active: form.is_active })
         setCompanies((prev) => [...prev, res.data])
       }
       setForm(EMPTY_FORM)
@@ -83,13 +84,14 @@ function CompanyManager() {
           <tr className="bg-gray-100 text-left text-gray-600">
             <th className="px-4 py-2 font-medium">ID</th>
             <th className="px-4 py-2 font-medium">Name</th>
+            <th className="px-4 py-2 font-medium">Status</th>
             <th className="px-4 py-2 font-medium">Actions</th>
           </tr>
         </thead>
         <tbody>
           {companies.length === 0 ? (
             <tr>
-              <td colSpan={3} className="px-4 py-4 text-center text-gray-400">
+              <td colSpan={4} className="px-4 py-4 text-center text-gray-400">
                 No companies yet.
               </td>
             </tr>
@@ -98,6 +100,7 @@ function CompanyManager() {
               <tr key={company.id} className="border-t border-gray-200">
                 <td className="px-4 py-2 text-gray-500">{company.id}</td>
                 <td className="px-4 py-2 text-gray-800">{company.name}</td>
+                <td className="px-4 py-2 text-gray-600">{company.is_active ? 'Active' : 'Inactive'}</td>
                 <td className="px-4 py-2">
                   <button
                     onClick={() => handleEdit(company)}
@@ -124,12 +127,17 @@ function CompanyManager() {
         </h3>
         <div className="flex gap-2">
           <input
+            name="name"
             type="text"
             placeholder="Company name"
             value={form.name}
             onChange={handleFormChange}
             className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" name="is_active" checked={form.is_active} onChange={handleFormChange} />
+            Active
+          </label>
           <button
             type="submit"
             disabled={submitting}

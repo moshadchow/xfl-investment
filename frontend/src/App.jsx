@@ -5,6 +5,10 @@ import ErrorBoundary from './components/layout/ErrorBoundary'
 import PrivateRoute from './components/layout/PrivateRoute'
 import Login from './pages/Login'
 import AdminDashboard from './pages/AdminDashboard'
+import AdminCompaniesPage from './pages/AdminCompaniesPage'
+import AdminRolesPage from './pages/AdminRolesPage'
+import AdminSubInvestmentTypesPage from './pages/AdminSubInvestmentTypesPage'
+import AdminUsersPage from './pages/AdminUsersPage'
 import UserDashboard from './pages/UserDashboard'
 
 function LoginGuard() {
@@ -25,7 +29,13 @@ function App() {
             <Route path="/login" element={<LoginGuard />} />
 
             <Route element={<PrivateRoute adminOnly />}>
-              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin" element={<AdminDashboard />}>
+                <Route index element={<Navigate to="roles" replace />} />
+                <Route path="roles" element={<AdminRolesPage />} />
+                <Route path="users" element={<AdminUsersPage />} />
+                <Route path="companies" element={<AdminCompaniesPage />} />
+                <Route path="sub-investment-types" element={<AdminSubInvestmentTypesPage />} />
+              </Route>
             </Route>
 
             <Route element={<PrivateRoute />}>
