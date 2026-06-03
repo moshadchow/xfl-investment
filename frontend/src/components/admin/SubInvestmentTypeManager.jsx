@@ -13,7 +13,6 @@ const EMPTY_FORM = {
 const EMPTY_FILTERS = {
   search: '',
   asset_management_company_id: '',
-  investment_type: '',
   is_active: '',
 }
 
@@ -52,7 +51,6 @@ function SubInvestmentTypeManager() {
       }
       if (filters.search.trim()) params.search = filters.search.trim()
       if (filters.asset_management_company_id) params.asset_management_company_id = Number(filters.asset_management_company_id)
-      if (filters.investment_type.trim()) params.investment_type = filters.investment_type.trim()
       if (filters.is_active !== '') params.is_active = filters.is_active === 'true'
 
       const res = await client.get('/sub-investment-types', { params })
@@ -205,7 +203,7 @@ function SubInvestmentTypeManager() {
         </div>
       )}
 
-      <div className="mb-4 grid gap-3 rounded border border-gray-200 bg-white p-4 md:grid-cols-5">
+      <div className="mb-4 grid gap-3 rounded border border-gray-200 bg-white p-4 md:grid-cols-4">
         <div>
           <label className="mb-1 block text-xs text-gray-600">Search</label>
           <input
@@ -229,16 +227,6 @@ function SubInvestmentTypeManager() {
               <option key={company.id} value={company.id}>{company.name}</option>
             ))}
           </select>
-        </div>
-        <div>
-          <label className="mb-1 block text-xs text-gray-600">Investment Type</label>
-          <input
-            name="investment_type"
-            value={filters.investment_type}
-            onChange={handleFilterChange}
-            placeholder="Filter by type"
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
         </div>
         <div>
           <label className="mb-1 block text-xs text-gray-600">Status</label>
