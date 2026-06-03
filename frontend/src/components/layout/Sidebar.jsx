@@ -6,6 +6,7 @@ const adminLinks = [
   { to: '/admin/users', label: 'User Management' },
   { to: '/admin/companies', label: 'Asset Management Companies' },
   { to: '/admin/sub-investment-types', label: 'Sub-Investment Types' },
+  { to: '/admin/investments', label: 'Investments' },
 ]
 
 function Sidebar() {

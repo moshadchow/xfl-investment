@@ -39,10 +39,7 @@ def create_user(session: Session, data: UserCreate) -> User:
     return user
 
 
-def update_user(session: Session, user_id: int, data: dict) -> User | None:
-    user = session.get(User, user_id)
-    if not user:
-        return None
+def update_user(session: Session, user: User, data: dict) -> User:
     if "password" in data:
         data = {**data, "hashed_password": _hash_password(data.pop("password"))}
     for key, value in data.items():

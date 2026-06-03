@@ -6,6 +6,7 @@ import PrivateRoute from './components/layout/PrivateRoute'
 import Login from './pages/Login'
 import AdminDashboard from './pages/AdminDashboard'
 import AdminCompaniesPage from './pages/AdminCompaniesPage'
+import AdminInvestmentsPage from './pages/AdminInvestmentsPage'
 import AdminRolesPage from './pages/AdminRolesPage'
 import AdminSubInvestmentTypesPage from './pages/AdminSubInvestmentTypesPage'
 import AdminUsersPage from './pages/AdminUsersPage'
@@ -35,6 +36,7 @@ function App() {
                 <Route path="users" element={<AdminUsersPage />} />
                 <Route path="companies" element={<AdminCompaniesPage />} />
                 <Route path="sub-investment-types" element={<AdminSubInvestmentTypesPage />} />
+                <Route path="investments" element={<AdminInvestmentsPage />} />
               </Route>
             </Route>
 

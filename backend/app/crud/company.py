@@ -4,7 +4,7 @@ from ..models.company import AssetManagementCompany
 from ..models.fund_data import FundData
 from ..schemas.company import CompanyCreate, CompanyRead
 
-_COLUMNS = ["id", "name"]
+_COLUMNS = ["id", "name", "is_active"]
 
 
 def _to_read(company: AssetManagementCompany, session: Session) -> CompanyRead:
@@ -22,7 +22,7 @@ def get_company_by_id(session: Session, company_id: int) -> AssetManagementCompa
 
 
 def create_company(session: Session, data: CompanyCreate) -> CompanyRead:
-    company = AssetManagementCompany(name=data.name)
+    company = AssetManagementCompany(name=data.name, is_active=data.is_active)
     session.add(company)
     session.commit()
     return _to_read(company, session)
@@ -35,6 +35,7 @@ def update_company(
     if not company:
         return None
     company.name = data.name
+    company.is_active = data.is_active
     session.add(company)
     session.commit()
     return _to_read(company, session)
