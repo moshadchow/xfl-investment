@@ -2,10 +2,19 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 
 function Navbar() {
-  const { user, logout } = useAuth()
+  const { user, logout, hasAnyPermission } = useAuth()
   const navigate = useNavigate()
 
   if (!user) return null
+
+  const isAdminAreaUser = hasAnyPermission([
+    'roles.view',
+    'users.view',
+    'companies.view',
+    'investment_types.view',
+    'investments.view',
+    'investment_details.view',
+  ])
 
   async function handleLogout() {
     await logout()
@@ -19,12 +28,12 @@ function Navbar() {
         <span className="text-sm text-gray-600">{user.username}</span>
         <span
           className={
-            user.role.name === 'admin'
+            isAdminAreaUser
               ? 'rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700'
               : 'rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600'
           }
         >
-          {user.role.name === 'admin' ? 'Admin' : 'User'}
+          {user.role?.name ?? (isAdminAreaUser ? 'Admin' : 'User')}
         </span>
         <button
           onClick={handleLogout}

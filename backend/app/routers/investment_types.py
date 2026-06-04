@@ -2,26 +2,26 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlmodel import Session
 
 from ..crud.audit_log import create_audit_log
-from ..crud.sub_investment_type import (
-    create_sub_investment_type,
-    delete_sub_investment_type,
-    get_sub_investment_type_by_id,
-    get_sub_investment_types,
-    update_sub_investment_type,
-    update_sub_investment_type_status,
+from ..crud.investment_type import (
+    create_investment_type,
+    delete_investment_type,
+    get_investment_type_by_id,
+    get_investment_types,
+    update_investment_type,
+    update_investment_type_status,
 )
 from ..database import get_session
-from ..deps import require_admin
+from ..deps import require_permission
 from ..models.user import User
-from ..schemas.sub_investment_type import (
-    SubInvestmentTypeCreate,
-    SubInvestmentTypeList,
-    SubInvestmentTypeRead,
-    SubInvestmentTypeStatusUpdate,
-    SubInvestmentTypeUpdate,
+from ..schemas.investment_type import (
+    InvestmentTypeCreate,
+    InvestmentTypeList,
+    InvestmentTypeRead,
+    InvestmentTypeStatusUpdate,
+    InvestmentTypeUpdate,
 )
 
-router = APIRouter(prefix="/sub-investment-types", tags=["sub-investment-types"])
+router = APIRouter(prefix="/investment-types", tags=["investment-types"])
 
 
 def _handle_validation_error(exc: ValueError) -> None:
@@ -30,24 +30,24 @@ def _handle_validation_error(exc: ValueError) -> None:
     raise HTTPException(status_code=code, detail=message)
 
 
-@router.get("", response_model=SubInvestmentTypeList)
-def list_sub_investment_types(
+@router.get("", response_model=InvestmentTypeList)
+def list_investment_types(
     search: str | None = None,
     asset_management_company_id: int | None = None,
-    investment_type: str | None = None,
+    investment_type_name: str | None = None,
     is_active: bool | None = None,
-    sort_by: str = "name",
+    sort_by: str = "investment_type_name",
     sort_dir: str = "asc",
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1, le=100),
     session: Session = Depends(get_session),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_permission("investment_types.view")),
 ):
-    return get_sub_investment_types(
+    return get_investment_types(
         session,
         search=search,
         asset_management_company_id=asset_management_company_id,
-        investment_type=investment_type,
+        investment_type_name=investment_type_name,
         is_active=is_active,
         sort_by=sort_by,
         sort_dir=sort_dir,
@@ -56,32 +56,32 @@ def list_sub_investment_types(
     )
 
 
-@router.get("/{sub_investment_type_id}", response_model=SubInvestmentTypeRead)
-def get_sub_investment_type_endpoint(
-    sub_investment_type_id: int,
+@router.get("/{investment_type_id}", response_model=InvestmentTypeRead)
+def get_investment_type_endpoint(
+    investment_type_id: int,
     session: Session = Depends(get_session),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_permission("investment_types.view")),
 ):
-    item = get_sub_investment_type_by_id(session, sub_investment_type_id)
+    item = get_investment_type_by_id(session, investment_type_id)
     if item is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sub-investment type not found")
-    from ..crud.sub_investment_type import _to_read
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Investment type not found")
+    from ..crud.investment_type import _to_read
 
     return _to_read(item, session)
 
 
-@router.post("", response_model=SubInvestmentTypeRead, status_code=status.HTTP_201_CREATED)
-def create_sub_investment_type_endpoint(
-    data: SubInvestmentTypeCreate,
+@router.post("", response_model=InvestmentTypeRead, status_code=status.HTTP_201_CREATED)
+def create_investment_type_endpoint(
+    data: InvestmentTypeCreate,
     session: Session = Depends(get_session),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_permission("investment_types.create")),
 ):
     try:
-        result = create_sub_investment_type(session, data, current_user.id)
+        result = create_investment_type(session, data, current_user.id)
         create_audit_log(
             session,
             actor_user_id=current_user.id,
-            entity_type="sub_investment_type",
+            entity_type="investment_type",
             entity_id=result.id,
             action="create",
             details={"new": result.model_dump(mode="json")},
@@ -91,7 +91,7 @@ def create_sub_investment_type_endpoint(
         create_audit_log(
             session,
             actor_user_id=current_user.id,
-            entity_type="sub_investment_type",
+            entity_type="investment_type",
             entity_id=None,
             action="create_failed",
             details={"data": data.model_dump(mode="json"), "reason": str(exc)},
@@ -101,7 +101,7 @@ def create_sub_investment_type_endpoint(
         create_audit_log(
             session,
             actor_user_id=current_user.id,
-            entity_type="sub_investment_type",
+            entity_type="investment_type",
             entity_id=None,
             action="create_failed",
             details={"data": data.model_dump(mode="json"), "reason": str(exc)},
@@ -109,35 +109,35 @@ def create_sub_investment_type_endpoint(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
 
 
-@router.put("/{sub_investment_type_id}", response_model=SubInvestmentTypeRead)
-def update_sub_investment_type_endpoint(
-    sub_investment_type_id: int,
-    data: SubInvestmentTypeUpdate,
+@router.put("/{investment_type_id}", response_model=InvestmentTypeRead)
+def update_investment_type_endpoint(
+    investment_type_id: int,
+    data: InvestmentTypeUpdate,
     session: Session = Depends(get_session),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_permission("investment_types.update")),
 ):
-    existing = get_sub_investment_type_by_id(session, sub_investment_type_id)
+    existing = get_investment_type_by_id(session, investment_type_id)
     if existing is None:
         create_audit_log(
             session,
             actor_user_id=current_user.id,
-            entity_type="sub_investment_type",
-            entity_id=sub_investment_type_id,
+            entity_type="investment_type",
+            entity_id=investment_type_id,
             action="update_failed",
             details={"reason": "not_found"},
         )
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sub-investment type not found")
-    from ..crud.sub_investment_type import _to_read
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Investment type not found")
+    from ..crud.investment_type import _to_read
 
     before = _to_read(existing, session).model_dump(mode="json")
     try:
-        result = update_sub_investment_type(session, sub_investment_type_id, data, current_user.id)
+        result = update_investment_type(session, investment_type_id, data, current_user.id)
     except ValueError as exc:
         create_audit_log(
             session,
             actor_user_id=current_user.id,
-            entity_type="sub_investment_type",
-            entity_id=sub_investment_type_id,
+            entity_type="investment_type",
+            entity_id=investment_type_id,
             action="update_failed",
             details={"old": before, "data": data.model_dump(mode="json"), "reason": str(exc)},
         )
@@ -146,8 +146,8 @@ def update_sub_investment_type_endpoint(
         create_audit_log(
             session,
             actor_user_id=current_user.id,
-            entity_type="sub_investment_type",
-            entity_id=sub_investment_type_id,
+            entity_type="investment_type",
+            entity_id=investment_type_id,
             action="update_failed",
             details={"old": before, "data": data.model_dump(mode="json"), "reason": str(exc)},
         )
@@ -155,91 +155,91 @@ def update_sub_investment_type_endpoint(
     create_audit_log(
         session,
         actor_user_id=current_user.id,
-        entity_type="sub_investment_type",
-        entity_id=sub_investment_type_id,
+        entity_type="investment_type",
+        entity_id=investment_type_id,
         action="update",
         details={"old": before, "new": result.model_dump(mode="json")},
     )
     return result
 
 
-@router.patch("/{sub_investment_type_id}/status", response_model=SubInvestmentTypeRead)
-def update_sub_investment_type_status_endpoint(
-    sub_investment_type_id: int,
-    data: SubInvestmentTypeStatusUpdate,
+@router.patch("/{investment_type_id}/status", response_model=InvestmentTypeRead)
+def update_investment_type_status_endpoint(
+    investment_type_id: int,
+    data: InvestmentTypeStatusUpdate,
     session: Session = Depends(get_session),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_permission("investment_types.update")),
 ):
-    existing = get_sub_investment_type_by_id(session, sub_investment_type_id)
+    existing = get_investment_type_by_id(session, investment_type_id)
     if existing is None:
         create_audit_log(
             session,
             actor_user_id=current_user.id,
-            entity_type="sub_investment_type",
-            entity_id=sub_investment_type_id,
+            entity_type="investment_type",
+            entity_id=investment_type_id,
             action="status_update_failed",
             details={"is_active": data.is_active, "reason": "not_found"},
         )
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sub-investment type not found")
-    from ..crud.sub_investment_type import _to_read
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Investment type not found")
+    from ..crud.investment_type import _to_read
 
     before = _to_read(existing, session).model_dump(mode="json")
-    result = update_sub_investment_type_status(
+    result = update_investment_type_status(
         session,
-        sub_investment_type_id,
+        investment_type_id,
         data.is_active,
         current_user.id,
     )
     create_audit_log(
         session,
         actor_user_id=current_user.id,
-        entity_type="sub_investment_type",
-        entity_id=sub_investment_type_id,
+        entity_type="investment_type",
+        entity_id=investment_type_id,
         action="status_update",
         details={"old": before, "new": result.model_dump(mode="json")},
     )
     return result
 
 
-@router.delete("/{sub_investment_type_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_sub_investment_type_endpoint(
-    sub_investment_type_id: int,
+@router.delete("/{investment_type_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_investment_type_endpoint(
+    investment_type_id: int,
     session: Session = Depends(get_session),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_permission("investment_types.delete")),
 ):
-    existing = get_sub_investment_type_by_id(session, sub_investment_type_id)
+    existing = get_investment_type_by_id(session, investment_type_id)
     if existing is None:
         create_audit_log(
             session,
             actor_user_id=current_user.id,
-            entity_type="sub_investment_type",
-            entity_id=sub_investment_type_id,
+            entity_type="investment_type",
+            entity_id=investment_type_id,
             action="delete_failed",
             details={"reason": "not_found"},
         )
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sub-investment type not found")
-    from ..crud.sub_investment_type import _to_read
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Investment type not found")
+    from ..crud.investment_type import _to_read
 
     before = _to_read(existing, session).model_dump(mode="json")
-    result = delete_sub_investment_type(session, sub_investment_type_id)
+    result = delete_investment_type(session, investment_type_id)
     if result is None:
         create_audit_log(
             session,
             actor_user_id=current_user.id,
-            entity_type="sub_investment_type",
-            entity_id=sub_investment_type_id,
+            entity_type="investment_type",
+            entity_id=investment_type_id,
             action="delete_failed",
             details={"old": before, "reason": "referenced"},
         )
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Cannot delete sub-investment type with associated records",
+            detail="Cannot delete investment type with associated records",
         )
     create_audit_log(
         session,
         actor_user_id=current_user.id,
-        entity_type="sub_investment_type",
-        entity_id=sub_investment_type_id,
+        entity_type="investment_type",
+        entity_id=investment_type_id,
         action="delete",
         details={"old": before},
     )

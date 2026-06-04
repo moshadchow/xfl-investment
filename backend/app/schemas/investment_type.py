@@ -4,35 +4,28 @@ from typing import Optional
 from sqlmodel import Field, SQLModel
 
 
-class SubInvestmentTypeCreate(SQLModel):
+class InvestmentTypeCreate(SQLModel):
     asset_management_company_id: int
-    investment_type: str = Field(min_length=1, max_length=100)
-    name: str = Field(min_length=1, max_length=100)
-    code: str = Field(min_length=1, max_length=50)
+    investment_type_name: str = Field(min_length=1, max_length=100)
     description: Optional[str] = Field(default=None, max_length=500)
     is_active: bool = True
 
 
-class SubInvestmentTypeUpdate(SQLModel):
-    asset_management_company_id: int
-    investment_type: str = Field(min_length=1, max_length=100)
-    name: str = Field(min_length=1, max_length=100)
-    code: str = Field(min_length=1, max_length=50)
+class InvestmentTypeUpdate(SQLModel):
+    investment_type_name: str = Field(min_length=1, max_length=100)
     description: Optional[str] = Field(default=None, max_length=500)
     is_active: bool
 
 
-class SubInvestmentTypeStatusUpdate(SQLModel):
+class InvestmentTypeStatusUpdate(SQLModel):
     is_active: bool
 
 
-class SubInvestmentTypeRead(SQLModel):
+class InvestmentTypeRead(SQLModel):
     id: int
     asset_management_company_id: int
     asset_management_company_name: Optional[str] = None
-    investment_type: str
-    name: str
-    code: str
+    investment_type_name: str
     description: Optional[str] = None
     is_active: bool
     created_by: Optional[int] = None
@@ -41,8 +34,8 @@ class SubInvestmentTypeRead(SQLModel):
     updated_at: datetime
 
 
-class SubInvestmentTypeList(SQLModel):
-    items: list[SubInvestmentTypeRead]
+class InvestmentTypeList(SQLModel):
+    items: list[InvestmentTypeRead]
     total: int
     page: int
     page_size: int

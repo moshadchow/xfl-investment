@@ -32,7 +32,6 @@ Create an Investment Management page displaying:
 * Investment Code
 * Asset Management Company
 * Investment Type
-* Sub-Investment Type
 * Purchase Date
 * Purchase Units
 * Investment Amount
@@ -58,7 +57,6 @@ Administrators should be able to create a new investment record.
 
 * Asset Management Company (Dropdown)
 * Investment Type (Dropdown)
-* Sub-Investment Type (Dropdown)
 
 #### Investment Information
 
@@ -83,8 +81,6 @@ Asset Management Company
       ↓
 Investment Type
       ↓
-Sub-Investment Type
-      ↓
 Investment
 ```
 
@@ -98,16 +94,11 @@ When an Asset Management Company is selected:
 
 * Load all Investment Types belonging to the selected AMC.
 
+
 ### Investment Type Selection
 
-When an Investment Type is selected:
-
-* Load all Sub-Investment Types belonging to the selected AMC and Investment Type.
-
-### Sub-Investment Type Selection
-
-* Allow the user to select the appropriate Sub-Investment Type.
-* Do not allow manual entry of Investment Type or Sub-Investment Type.
+* Allow the user to select the appropriate Investment Type.
+* Do not allow manual entry of Investment Type.
 
 ---
 
@@ -117,10 +108,6 @@ When an Investment Type is selected:
 Select AMC
       ↓
 Load Investment Types
-      ↓
-Select Investment Type
-      ↓
-Load Sub-Investment Types
       ↓
 Enter Purchase Date
       ↓
@@ -182,9 +169,7 @@ investment_code VARCHAR(100) UNIQUE
 
 asset_management_company_id UUID NOT NULL
 
-investment_type VARCHAR(255) NOT NULL
-
-sub_investment_type_id UUID NOT NULL
+investment_type_name VARCHAR(255) NOT NULL
 
 purchase_date DATE NOT NULL
 
@@ -216,9 +201,7 @@ Asset Management Company
        │
        └── Investment Type
                 │
-                └── Sub-Investment Type
-                        │
-                        └── Investment
+                └── Investment
 ```
 
 ---
@@ -284,7 +267,6 @@ Columns:
 * Investment Code
 * AMC
 * Investment Type
-* Sub-Investment Type
 * Purchase Date
 * Purchase Units
 * Investment Amount
@@ -308,9 +290,6 @@ Dropdown
 
 Dropdown filtered by selected AMC
 
-### Sub-Investment Type
-
-Dropdown filtered by selected AMC and Investment Type
 
 ### Purchase Date
 
@@ -350,10 +329,6 @@ Dropdown
 * Required
 * Must belong to selected AMC
 
-### Sub-Investment Type
-
-* Required
-* Must belong to selected Investment Type
 
 ### Purchase Date
 
@@ -389,4 +364,4 @@ without requiring significant database redesign.
 
 # Expected Outcome
 
-Deliver a complete Investment Management module that allows administrators to maintain investment records linked to Asset Management Companies, Investment Types, and Sub-Investment Types, supports full CRUD operations, enforces data integrity, and provides a scalable foundation for future investment and portfolio management capabilities.
+Deliver a complete Investment Management module that allows administrators to maintain investment records linked to Asset Management Companies, Investment Types, and supports full CRUD operations, enforces data integrity, and provides a scalable foundation for future investment and portfolio management capabilities.

@@ -2,6 +2,8 @@ from sqlmodel import Session, select
 
 from ..models.company import AssetManagementCompany
 from ..models.fund_data import FundData
+from ..models.investment import Investment
+from ..models.investment_type import InvestmentType
 from ..schemas.company import CompanyCreate, CompanyRead
 
 _COLUMNS = ["id", "name", "is_active"]
@@ -45,11 +47,16 @@ def delete_company(session: Session, company_id: int) -> bool:
     company = session.get(AssetManagementCompany, company_id)
     if not company:
         return False
-    # Block deletion if company has fund entries
     has_entries = session.exec(
         select(FundData).where(FundData.company_id == company_id)
     ).first()
-    if has_entries:
+    has_investments = session.exec(
+        select(Investment).where(Investment.asset_management_company_id == company_id)
+    ).first()
+    has_investment_types = session.exec(
+        select(InvestmentType).where(InvestmentType.asset_management_company_id == company_id)
+    ).first()
+    if has_entries or has_investments or has_investment_types:
         return None  # signals conflict
     session.delete(company)
     session.commit()

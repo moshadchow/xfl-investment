@@ -12,7 +12,7 @@ from ..crud.user import (
     update_user,
 )
 from ..database import get_session
-from ..deps import require_admin
+from ..deps import require_permission
 from ..models.user import User
 from ..schemas.user import UserCreate, UserPut, UserRead, UserUpdate
 
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 @router.get("", response_model=list[UserRead])
-def list_users(session: Session = Depends(get_session), _: User = Depends(require_admin)):
+def list_users(session: Session = Depends(get_session), _: User = Depends(require_permission("users.view"))):
     return get_all_users(session)
 
 
@@ -28,7 +28,7 @@ def list_users(session: Session = Depends(get_session), _: User = Depends(requir
 def create_user_endpoint(
     data: UserCreate,
     session: Session = Depends(get_session),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_permission("users.create")),
 ):
     username = data.username.strip()
     if get_user_by_username(session, username):
@@ -67,7 +67,7 @@ def replace_user_endpoint(
     user_id: int,
     data: UserPut,
     session: Session = Depends(get_session),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_permission("users.update")),
 ):
     user = get_user_by_id(session, user_id)
     if not user:
@@ -156,7 +156,7 @@ def update_user_endpoint(
     user_id: int,
     data: UserUpdate,
     session: Session = Depends(get_session),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_permission("users.update")),
 ):
     user = get_user_by_id(session, user_id)
     if not user:
@@ -245,7 +245,7 @@ def update_user_endpoint(
 def delete_user_endpoint(
     user_id: int,
     session: Session = Depends(get_session),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_permission("users.delete")),
 ):
     target_user = get_user_by_id(session, user_id)
     if current_user.id == user_id:

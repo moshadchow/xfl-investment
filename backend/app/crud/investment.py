@@ -6,19 +6,18 @@ from sqlmodel import Session, col, func, or_, select, text
 
 from ..models.company import AssetManagementCompany
 from ..models.investment import Investment
-from ..models.sub_investment_type import SubInvestmentType
+from ..models.investment_type import InvestmentType
 from ..schemas.investment import (
     InvestmentCreate,
     InvestmentList,
     InvestmentRead,
     InvestmentTypeOptionRead,
     InvestmentUpdate,
-    SubInvestmentTypeOptionRead,
 )
 
 _ALLOWED_STATUSES = {"active", "pending", "redeemed", "closed"}
 _SORT_COLUMNS = {
-    "investment_type": Investment.investment_type,
+    "investment_code": Investment.investment_code,
     "purchase_date": Investment.purchase_date,
     "purchase_units": Investment.purchase_units,
     "investment_amount": Investment.investment_amount,
@@ -32,20 +31,12 @@ def _clean_text(value: str) -> str:
     return value.strip()
 
 
-def _normalize_text(value: str) -> str:
-    return " ".join(value.strip().casefold().split())
-
-
-def _clean_code(value: str) -> str:
-    return value.strip().upper()
-
-
 def _generate_investment_code(investment_id: int) -> str:
     return f"INV-{investment_id:06d}"
 
 
 def _validate_status(value: str) -> str:
-    status = _normalize_text(value)
+    status = " ".join(value.strip().casefold().split())
     if not status:
         raise ValueError("Status is required")
     if status not in _ALLOWED_STATUSES:
@@ -62,35 +53,31 @@ def _validate_company(session: Session, company_id: int) -> AssetManagementCompa
     return company
 
 
-def _validate_sub_investment_type(
+def _validate_investment_type(
     session: Session,
     *,
     company_id: int,
-    investment_type: str,
-    sub_investment_type_id: int,
-) -> SubInvestmentType:
-    item = session.get(SubInvestmentType, sub_investment_type_id)
+    investment_type_id: int,
+) -> InvestmentType:
+    item = session.get(InvestmentType, investment_type_id)
     if not item:
-        raise ValueError("Sub-investment type not found")
+        raise ValueError("Investment type not found")
     if not item.is_active:
-        raise ValueError("Sub-investment type is inactive")
+        raise ValueError("Investment type is inactive")
     if item.asset_management_company_id != company_id:
-        raise ValueError("Sub-investment type does not belong to the selected company")
-    if item.investment_type_normalized != _normalize_text(investment_type):
-        raise ValueError("Sub-investment type does not match the selected investment type")
+        raise ValueError("Investment type does not belong to the selected company")
     return item
 
 
 def _to_read(item: Investment, session: Session) -> InvestmentRead:
-    session.refresh(item, attribute_names=["company", "sub_investment_type"])
+    session.refresh(item, attribute_names=["company", "investment_type"])
     return InvestmentRead(
         id=item.id,
         investment_code=item.investment_code,
         asset_management_company_id=item.asset_management_company_id,
         asset_management_company_name=item.company.name if item.company else None,
-        investment_type=item.investment_type,
-        sub_investment_type_id=item.sub_investment_type_id,
-        sub_investment_type_name=item.sub_investment_type.name if item.sub_investment_type else None,
+        investment_type_id=item.investment_type_id,
+        investment_type_name=item.investment_type.investment_type_name if item.investment_type else "",
         purchase_date=item.purchase_date,
         purchase_units=item.purchase_units,
         investment_amount=item.investment_amount,
@@ -120,44 +107,18 @@ def get_investment_types_for_company(
     company_id: int,
 ) -> list[InvestmentTypeOptionRead]:
     statement = (
-        select(SubInvestmentType.investment_type, SubInvestmentType.investment_type_normalized)
+        select(InvestmentType)
         .where(
-            SubInvestmentType.asset_management_company_id == company_id,
-            SubInvestmentType.is_active == True,
+            InvestmentType.asset_management_company_id == company_id,
+            InvestmentType.is_active == True,
         )
-        .group_by(SubInvestmentType.investment_type, SubInvestmentType.investment_type_normalized)
-        .order_by(SubInvestmentType.investment_type)
+        .order_by(InvestmentType.investment_type_name)
     )
     rows = session.exec(statement).all()
     return [
-        InvestmentTypeOptionRead(value=row[0], label=row[0])
-        for row in rows
-        if row[1]
-    ]
-
-
-def get_sub_investment_type_options(
-    session: Session,
-    *,
-    company_id: int,
-    investment_type: str,
-) -> list[SubInvestmentTypeOptionRead]:
-    statement = (
-        select(SubInvestmentType)
-        .where(
-            SubInvestmentType.asset_management_company_id == company_id,
-            SubInvestmentType.investment_type_normalized == _normalize_text(investment_type),
-            SubInvestmentType.is_active == True,
-        )
-        .order_by(SubInvestmentType.name)
-    )
-    rows = session.exec(statement).all()
-    return [
-        SubInvestmentTypeOptionRead(
+        InvestmentTypeOptionRead(
             id=item.id,
-            name=item.name,
-            code=item.code,
-            investment_type=item.investment_type,
+            investment_type_name=item.investment_type_name,
         )
         for item in rows
     ]
@@ -168,8 +129,7 @@ def get_investments(
     *,
     search: Optional[str] = None,
     asset_management_company_id: Optional[int] = None,
-    investment_type: Optional[str] = None,
-    sub_investment_type_id: Optional[int] = None,
+    investment_type_id: Optional[int] = None,
     status: Optional[str] = None,
     sort_by: str = "created_at",
     sort_dir: str = "desc",
@@ -183,17 +143,15 @@ def get_investments(
         term = f"%{search.strip()}%"
         filters.append(
             or_(
+                col(Investment.investment_code).like(term),
                 col(Investment.reference_number).like(term),
-                col(Investment.investment_type).like(term),
                 col(Investment.remarks).like(term),
             )
         )
     if asset_management_company_id is not None:
         filters.append(Investment.asset_management_company_id == asset_management_company_id)
-    if investment_type:
-        filters.append(Investment.investment_type_normalized == _normalize_text(investment_type))
-    if sub_investment_type_id is not None:
-        filters.append(Investment.sub_investment_type_id == sub_investment_type_id)
+    if investment_type_id is not None:
+        filters.append(Investment.investment_type_id == investment_type_id)
     if status:
         filters.append(Investment.status == _validate_status(status))
 
@@ -224,26 +182,17 @@ def create_investment(
     actor_user_id: Optional[int],
 ) -> InvestmentRead:
     _validate_company(session, data.asset_management_company_id)
-    investment_type = _clean_text(data.investment_type)
-    investment_type_normalized = _normalize_text(investment_type)
-    status = _validate_status(data.status)
-
-    if not investment_type:
-        raise ValueError("Investment type is required")
-
-    _validate_sub_investment_type(
+    _validate_investment_type(
         session,
         company_id=data.asset_management_company_id,
-        investment_type=investment_type,
-        sub_investment_type_id=data.sub_investment_type_id,
+        investment_type_id=data.investment_type_id,
     )
+    status = _validate_status(data.status)
 
     item = Investment(
         investment_code="",
         asset_management_company_id=data.asset_management_company_id,
-        investment_type=investment_type,
-        investment_type_normalized=investment_type_normalized,
-        sub_investment_type_id=data.sub_investment_type_id,
+        investment_type_id=data.investment_type_id,
         purchase_date=data.purchase_date,
         purchase_units=data.purchase_units,
         investment_amount=data.investment_amount,
@@ -256,7 +205,7 @@ def create_investment(
     session.add(item)
     session.flush()
 
-    investment_code = _clean_code(_generate_investment_code(item.id))
+    investment_code = _generate_investment_code(item.id)
     if _duplicate_code(session, investment_code, item.id):
         raise FileExistsError("Generated investment code already exists")
 
@@ -277,25 +226,8 @@ def update_investment(
     if not item:
         return None
 
-    _validate_company(session, data.asset_management_company_id)
-    investment_type = _clean_text(data.investment_type)
-    investment_type_normalized = _normalize_text(investment_type)
     status = _validate_status(data.status)
 
-    if not investment_type:
-        raise ValueError("Investment type is required")
-
-    _validate_sub_investment_type(
-        session,
-        company_id=data.asset_management_company_id,
-        investment_type=investment_type,
-        sub_investment_type_id=data.sub_investment_type_id,
-    )
-
-    item.asset_management_company_id = data.asset_management_company_id
-    item.investment_type = investment_type
-    item.investment_type_normalized = investment_type_normalized
-    item.sub_investment_type_id = data.sub_investment_type_id
     item.purchase_date = data.purchase_date
     item.purchase_units = data.purchase_units
     item.investment_amount = data.investment_amount
@@ -315,6 +247,8 @@ def delete_investment(session: Session, investment_id: int) -> bool | None:
         return False
 
     known_dependency_tables: list[tuple[str, str, bool]] = [
+        ("investment_detail", "investment_id", False),
+        ("investment_details", "investment_id", False),
         ("investment_transaction", "investment_id", True),
         ("investment_transactions", "investment_id", True),
         ("customer_investment", "investment_id", False),

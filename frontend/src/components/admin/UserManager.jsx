@@ -1,9 +1,14 @@
 import { useEffect, useState } from 'react'
 import client from '../../api/client'
+import { useAuth } from '../../hooks/useAuth'
 
 const EMPTY_FORM = { username: '', password: '', role_id: '' }
 
 function UserManager() {
+  const { hasPermission } = useAuth()
+  const canCreate = hasPermission('users.create')
+  const canUpdate = hasPermission('users.update')
+  const canDelete = hasPermission('users.delete')
   const [users, setUsers] = useState([])
   const [roles, setRoles] = useState([])
   const [form, setForm] = useState(EMPTY_FORM)
@@ -126,6 +131,8 @@ function UserManager() {
     }
   }
 
+  const showForm = canCreate || (canUpdate && editingId)
+
   return (
     <div>
       {actionError && (
@@ -165,24 +172,30 @@ function UserManager() {
                   <td className="px-4 py-2 text-gray-600">{roleMap[user.role_id] ?? '—'}</td>
                   <td className="px-4 py-2 text-gray-600">{user.is_active ? 'Yes' : 'No'}</td>
                   <td className="flex gap-2 px-4 py-2">
-                    <button
-                      onClick={() => handleEdit(user)}
-                      className="rounded bg-blue-50 px-2 py-1 text-xs text-blue-600 hover:bg-blue-100"
-                    >
-                      View / Edit
-                    </button>
-                    <button
-                      onClick={() => handleToggleActive(user)}
-                      className="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700 hover:bg-gray-200"
-                    >
-                      {user.is_active ? 'Deactivate' : 'Activate'}
-                    </button>
-                    <button
-                      onClick={() => handleDelete(user)}
-                      className="rounded bg-red-50 px-2 py-1 text-xs text-red-600 hover:bg-red-100"
-                    >
-                      Delete
-                    </button>
+                    {canUpdate && (
+                      <button
+                        onClick={() => handleEdit(user)}
+                        className="rounded bg-blue-50 px-2 py-1 text-xs text-blue-600 hover:bg-blue-100"
+                      >
+                        View / Edit
+                      </button>
+                    )}
+                    {canUpdate && (
+                      <button
+                        onClick={() => handleToggleActive(user)}
+                        className="rounded bg-gray-100 px-2 py-1 text-xs text-gray-700 hover:bg-gray-200"
+                      >
+                        {user.is_active ? 'Deactivate' : 'Activate'}
+                      </button>
+                    )}
+                    {canDelete && (
+                      <button
+                        onClick={() => handleDelete(user)}
+                        className="rounded bg-red-50 px-2 py-1 text-xs text-red-600 hover:bg-red-100"
+                      >
+                        Delete
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))
@@ -191,73 +204,75 @@ function UserManager() {
         </table>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex max-w-lg flex-col gap-3">
-        <h3 className="text-sm font-medium text-gray-700">
-          {editingId ? 'Edit User' : 'Add User'}
-        </h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="mb-1 block text-xs text-gray-600">Username</label>
-            <input
-              type="text"
-              name="username"
-              required
-              value={form.username}
-              onChange={handleFormChange}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+      {showForm && (
+        <form onSubmit={handleSubmit} className="flex max-w-lg flex-col gap-3">
+          <h3 className="text-sm font-medium text-gray-700">
+            {editingId ? 'Edit User' : 'Add User'}
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs text-gray-600">Username</label>
+              <input
+                type="text"
+                name="username"
+                required
+                value={form.username}
+                onChange={handleFormChange}
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-gray-600">
+                {editingId ? 'New Password (optional)' : 'Password'}
+              </label>
+              <input
+                type="password"
+                name="password"
+                required={!editingId}
+                value={form.password}
+                onChange={handleFormChange}
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-gray-600">Role</label>
+              <select
+                name="role_id"
+                required
+                value={form.role_id}
+                onChange={handleFormChange}
+                className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Select role…</option>
+                {roles.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
-          <div>
-            <label className="mb-1 block text-xs text-gray-600">
-              {editingId ? 'New Password (optional)' : 'Password'}
-            </label>
-            <input
-              type="password"
-              name="password"
-              required={!editingId}
-              value={form.password}
-              onChange={handleFormChange}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-xs text-gray-600">Role</label>
-            <select
-              name="role_id"
-              required
-              value={form.role_id}
-              onChange={handleFormChange}
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">Select role…</option>
-              {roles.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        {formError && <p className="text-sm text-red-600">{formError}</p>}
-        <div className="flex gap-2">
-          <button
-            type="submit"
-            disabled={submitting}
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-          >
-            {submitting ? (editingId ? 'Updating…' : 'Creating…') : editingId ? 'Update User' : 'Add User'}
-          </button>
-          {editingId && (
+          {formError && <p className="text-sm text-red-600">{formError}</p>}
+          <div className="flex gap-2">
             <button
-              type="button"
-              onClick={handleCancelEdit}
-              className="rounded bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
+              type="submit"
+              disabled={submitting}
+              className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              Cancel
+              {submitting ? (editingId ? 'Updating…' : 'Creating…') : editingId ? 'Update User' : 'Add User'}
             </button>
-          )}
-        </div>
-      </form>
+            {editingId && (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                className="rounded bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+            )}
+          </div>
+        </form>
+      )}
     </div>
   )
 }

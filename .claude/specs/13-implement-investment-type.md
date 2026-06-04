@@ -1,8 +1,8 @@
-## Implement Sub-Investment Type Management Module in Admin Panel
+## Implement Investment Type Management Module in Admin Panel
 
 ### Objective
 
-Implement a new **Sub-Investment Type Management** module within the Admin Panel to allow authorized administrators to manage Sub-Investment Types under Asset Management Companies (AMCs) and manually entered Investment Types.
+Implement a new **Investment Type Management** module within the Admin Panel to allow authorized administrators to manage Sub-Investment Types under Asset Management Companies (AMCs) and manually entered Investment Types.
 
 The solution should support complete lifecycle management and serve as a configurable master-data module that can be reused throughout the platform without requiring code changes when new classifications are introduced. Investment Type is stored as text on each Sub-Investment Type master record; administrators create new Investment Types by entering a value in the form.
 
@@ -17,21 +17,19 @@ Administration
 ├── Roles Management
 ├── User Management
 ├── Asset Management Companies
-└── Sub-Investment Types
+└── Investment Types
 ```
 
 ---
 
 ## Functional Requirements
 
-### Sub-Investment Type Listing
+### Investment Type Listing
 
 Create a management screen that displays:
 
-* Sub-Investment Type Name
-* Code
 * Asset Management Company
-* Investment Type
+* Investment Type Name
 * Status
 * Created Date
 * Last Updated
@@ -45,16 +43,14 @@ Support:
 
 ---
 
-### Create Sub-Investment Type
+### Create Investment Type
 
-Administrators should be able to create a new Sub-Investment Type.
+Administrators should be able to create a new Investment Type.
 
 Required fields:
 
 * Asset Management Company
 * Investment Type
-* Sub-Investment Type Name
-* Code
 * Description (Optional)
 * Status (Active/Inactive)
 
@@ -65,22 +61,17 @@ AMC: ABC Asset Management
 
 Investment Type: Mutual Fund
 
-Sub-Investment Type: Open-End Fund
-
-Code: OPEN_END
 ```
 
 ---
 
-### Edit Sub-Investment Type
+### Edit Investment Type
 
 Allow administrators to update:
 
-* Sub-Investment Type Name
-* Code
+* Investment Type Name
 * Description
 * Status
-* Investment Type
 * Asset Management Company
 
 All modifications must be audited.
@@ -114,17 +105,13 @@ Inactive records should not appear in customer-facing dropdowns or onboarding fo
 
 Create a new table:
 
-### investment_sub_types
+### investment_types
 
 Fields:
 
 * id
 * asset_management_company_id
-* investment_type
-* investment_type_normalized
-* name
-* name_normalized
-* code
+* investment_type_name
 * description
 * is_active
 * created_by
@@ -137,12 +124,8 @@ Relationships:
 ```text
 Asset Management Company
         │
-        └── Investment Type (text value stored on record)
-                    │
-                    └── Sub-Investment Type
-```
+        └── Investment Type (drop-down record based on Asset Management Company)
 
-Investment Type must be stored as a string/varchar on the Sub-Investment Type record. Do not require a separate `investment_types` master table solely for dropdown population.
 
 ---
 
@@ -159,31 +142,31 @@ GET /api/admin/sub-investment-types
 ### Details
 
 ```http
-GET /api/admin/sub-investment-types/{id}
+GET /api/admin/investment-types/{id}
 ```
 
 ### Create
 
 ```http
-POST /api/admin/sub-investment-types
+POST /api/admin/investment-types
 ```
 
 ### Update
 
 ```http
-PUT /api/admin/sub-investment-types/{id}
+PUT /api/admin/investment-types/{id}
 ```
 
 ### Delete
 
 ```http
-DELETE /api/admin/sub-investment-types/{id}
+DELETE /api/admin/investment-types/{id}
 ```
 
 ### Activate / Deactivate
 
 ```http
-PATCH /api/admin/sub-investment-types/{id}/status
+PATCH /api/admin/investment-types/{id}/status
 ```
 
 ---
@@ -211,18 +194,14 @@ Provide:
 Fields:
 
 * Asset Management Company Dropdown
-* Investment Type Textbox
-* Sub-Investment Type Name
-* Code
+* Investment Type Name Dropdown
 * Description
 * Status
 
 Dynamic behavior:
 
 * Keep Asset Management Company as a dropdown.
-* Investment Type must be entered manually by the administrator.
-* Do not dynamically load Investment Types for this form.
-* Filter Sub-Investment Types by manually entered Investment Type text where needed.
+* Investment Type must be dropdown folloed by Asset Management Company.
 
 ---
 
@@ -231,7 +210,7 @@ Dynamic behavior:
 ### Name
 
 * Required
-* Combination of Asset Management Company + Investment Type + Sub-Investment Type Name must be unique
+* Combination of Asset Management Company + Investment Type Name must be unique
 
 ### Code
 
@@ -247,14 +226,13 @@ Dynamic behavior:
 ### Investment Type
 
 * Required
-* Entered manually by the administrator
+* Entered by dropdown by the administrator
 * Trim before saving
-* Normalize for case-insensitive validation
-* Duplicate Investment Type values are allowed within the same AMC only when paired with a different Sub-Investment Type
-* The same Asset Management Company + Investment Type + Sub-Investment Type Name combination must not be duplicated
+* Duplicate Investment Type values are not allowed within the same AMC.
+* The same Asset Management Company + Investment Type Name combination must not be duplicated
 
 ---
 
 ## Expected Outcome
 
-Deliver a fully configurable Sub-Investment Type Management module that allows administrators to manage AMC-specific investment classifications through the Admin Panel, supports complete CRUD operations, enforces referential integrity, and is scalable for future investment product hierarchy expansion.
+Deliver a fully configurable Investment Type Management module that allows administrators to manage AMC-specific investment classifications through the Admin Panel, supports complete CRUD operations, enforces referential integrity, and is scalable for future investment product hierarchy expansion.

@@ -7,8 +7,7 @@ from sqlmodel import Field, SQLModel
 
 class InvestmentCreate(SQLModel):
     asset_management_company_id: int
-    investment_type: str = Field(min_length=1, max_length=100)
-    sub_investment_type_id: int
+    investment_type_id: int
     purchase_date: date
     purchase_units: Decimal = Field(gt=0, max_digits=18, decimal_places=6)
     investment_amount: Decimal = Field(gt=0, max_digits=18, decimal_places=2)
@@ -18,9 +17,6 @@ class InvestmentCreate(SQLModel):
 
 
 class InvestmentUpdate(SQLModel):
-    asset_management_company_id: int
-    investment_type: str = Field(min_length=1, max_length=100)
-    sub_investment_type_id: int
     purchase_date: date
     purchase_units: Decimal = Field(gt=0, max_digits=18, decimal_places=6)
     investment_amount: Decimal = Field(gt=0, max_digits=18, decimal_places=2)
@@ -34,9 +30,8 @@ class InvestmentRead(SQLModel):
     investment_code: str
     asset_management_company_id: int
     asset_management_company_name: Optional[str] = None
-    investment_type: str
-    sub_investment_type_id: int
-    sub_investment_type_name: Optional[str] = None
+    investment_type_id: int
+    investment_type_name: str
     purchase_date: date
     purchase_units: Decimal
     investment_amount: Decimal
@@ -57,12 +52,5 @@ class InvestmentList(SQLModel):
 
 
 class InvestmentTypeOptionRead(SQLModel):
-    value: str
-    label: str
-
-
-class SubInvestmentTypeOptionRead(SQLModel):
     id: int
-    name: str
-    code: str
-    investment_type: str
+    investment_type_name: str

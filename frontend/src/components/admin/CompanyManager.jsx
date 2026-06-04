@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react'
 import client from '../../api/client'
+import { useAuth } from '../../hooks/useAuth'
 
 const EMPTY_FORM = { name: '', is_active: true }
 
 function CompanyManager() {
+  const { hasPermission } = useAuth()
+  const canCreate = hasPermission('companies.create')
+  const canUpdate = hasPermission('companies.update')
+  const canDelete = hasPermission('companies.delete')
   const [companies, setCompanies] = useState([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [editingId, setEditingId] = useState(null)
@@ -102,18 +107,22 @@ function CompanyManager() {
                 <td className="px-4 py-2 text-gray-800">{company.name}</td>
                 <td className="px-4 py-2 text-gray-600">{company.is_active ? 'Active' : 'Inactive'}</td>
                 <td className="px-4 py-2">
-                  <button
-                    onClick={() => handleEdit(company)}
-                    className="mr-2 text-blue-600 hover:underline"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(company.id)}
-                    className="text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
+                  {canUpdate && (
+                    <button
+                      onClick={() => handleEdit(company)}
+                      className="mr-2 text-blue-600 hover:underline"
+                    >
+                      Edit
+                    </button>
+                  )}
+                  {canDelete && (
+                    <button
+                      onClick={() => handleDelete(company.id)}
+                      className="text-red-600 hover:underline"
+                    >
+                      Delete
+                    </button>
+                  )}
                 </td>
               </tr>
             ))
@@ -121,7 +130,8 @@ function CompanyManager() {
         </tbody>
       </table>
 
-      <form onSubmit={handleSubmit} className="flex max-w-lg flex-col gap-3">
+      {(canCreate || (canUpdate && editingId)) && (
+        <form onSubmit={handleSubmit} className="flex max-w-lg flex-col gap-3">
         <h3 className="text-sm font-medium text-gray-700">
           {editingId ? 'Edit Company' : 'Add New Company'}
         </h3>
@@ -156,7 +166,8 @@ function CompanyManager() {
           )}
         </div>
         {formError && <p className="text-sm text-red-600">{formError}</p>}
-      </form>
+        </form>
+      )}
     </div>
   )
 }

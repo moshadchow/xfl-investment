@@ -3,6 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import client from '../api/client'
 
+const ADMIN_VIEW_PERMISSIONS = [
+  'roles.view',
+  'users.view',
+  'companies.view',
+  'investment_types.view',
+  'investments.view',
+  'investment_details.view',
+]
+
 function Login() {
   const { setUser } = useAuth()
   const navigate = useNavigate()
@@ -18,7 +27,9 @@ function Login() {
     try {
       const loginRes = await client.post('/auth/login', { username, password })
       setUser(loginRes.data)
-      navigate(loginRes.data.role.name === 'admin' ? '/admin' : '/dashboard', { replace: true })
+      const permissions = loginRes.data.permissions ?? []
+      const adminPath = ADMIN_VIEW_PERMISSIONS.some((permission) => permissions.includes(permission)) ? '/admin' : '/dashboard'
+      navigate(adminPath, { replace: true })
     } catch (err) {
       setError(err.response?.data?.detail ?? 'Login failed')
     } finally {

@@ -12,7 +12,7 @@ function AdminDashboard() {
           <div className="mb-8 border-b border-gray-200 pb-4">
             <h1 className="text-2xl font-bold text-gray-800">Administration</h1>
             <p className="mt-2 text-sm text-gray-600">
-              Manage roles, users, asset management companies, sub-investment types, investments, and investment details.
+              Manage roles, users, asset management companies, investment types, investments, and investment details.
             </p>
           </div>
           <Outlet />

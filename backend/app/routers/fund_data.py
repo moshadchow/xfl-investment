@@ -10,7 +10,7 @@ from ..crud.fund_data import (
     update_fund_entry,
 )
 from ..database import get_session
-from ..deps import require_admin
+from ..deps import require_permission
 from ..models.user import User
 from ..schemas.fund_data import FundDataCreate, FundDataRead, FundDataUpdate
 
@@ -22,7 +22,7 @@ def list_fund_entries(
     from_date: date,
     to_date: date,
     session: Session = Depends(get_session),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_permission("investment_details.view")),
 ):
     if to_date < from_date:
         raise HTTPException(
@@ -36,7 +36,7 @@ def list_fund_entries(
 def create_fund_entry_endpoint(
     data: FundDataCreate,
     session: Session = Depends(get_session),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_permission("investment_details.create")),
 ):
     return create_fund_entry(session, data, created_by=current_user.id)
 
@@ -46,7 +46,7 @@ def update_fund_entry_endpoint(
     entry_id: int,
     data: FundDataUpdate,
     session: Session = Depends(get_session),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_permission("investment_details.update")),
 ):
     entry = update_fund_entry(session, entry_id, data)
     if entry is None:
@@ -58,7 +58,7 @@ def update_fund_entry_endpoint(
 def delete_fund_entry_endpoint(
     entry_id: int,
     session: Session = Depends(get_session),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_permission("investment_details.delete")),
 ):
     if not delete_fund_entry(session, entry_id):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Entry not found")

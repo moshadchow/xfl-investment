@@ -36,7 +36,7 @@ function FundDataForm() {
 
   useEffect(() => {
     fetchEntries(fromDate, toDate)
-    client.get('/companies').then((res) => setCompanies(res.data))
+    client.get('/companies/list').then((res) => setCompanies(res.data))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleFilterSubmit(e) {

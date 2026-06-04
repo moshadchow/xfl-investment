@@ -9,7 +9,7 @@ from ..crud.company import (
     update_company,
 )
 from ..database import get_session
-from ..deps import get_current_user, require_admin
+from ..deps import get_current_user, require_permission
 from ..models.user import User
 from ..schemas.company import CompanyCreate, CompanyRead
 
@@ -19,7 +19,7 @@ router = APIRouter(prefix="/companies", tags=["companies"])
 @router.get("", response_model=list[CompanyRead])
 def list_companies(
     session: Session = Depends(get_session),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_permission("companies.view")),
 ):
     return get_all_companies(session)
 
@@ -37,7 +37,7 @@ def list_companies_public(
 def create_company_endpoint(
     data: CompanyCreate,
     session: Session = Depends(get_session),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_permission("companies.create")),
 ):
     try:
         return create_company(session, data)
@@ -54,7 +54,7 @@ def update_company_endpoint(
     company_id: int,
     data: CompanyCreate,
     session: Session = Depends(get_session),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_permission("companies.update")),
 ):
     try:
         result = update_company(session, company_id, data)
@@ -73,13 +73,13 @@ def update_company_endpoint(
 def delete_company_endpoint(
     company_id: int,
     session: Session = Depends(get_session),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_permission("companies.delete")),
 ):
     result = delete_company(session, company_id)
     if result is None:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="Cannot delete company with associated fund entries",
+            detail="Cannot delete company with associated fund entries, investments, or investment types",
         )
     if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Company not found")

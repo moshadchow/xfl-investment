@@ -7,7 +7,7 @@ from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
     from .company import AssetManagementCompany
-    from .sub_investment_type import SubInvestmentType
+    from .investment_type import InvestmentType
 
 
 class Investment(SQLModel, table=True):
@@ -17,9 +17,7 @@ class Investment(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     investment_code: str = Field(max_length=100, nullable=False)
     asset_management_company_id: int = Field(foreign_key="asset_management_company.id", nullable=False)
-    investment_type: str = Field(max_length=100, nullable=False)
-    investment_type_normalized: str = Field(max_length=100, nullable=False)
-    sub_investment_type_id: int = Field(foreign_key="investment_sub_types.id", nullable=False)
+    investment_type_id: int = Field(foreign_key="investment_types.id", nullable=False)
     purchase_date: date
     purchase_units: Decimal = Field(max_digits=18, decimal_places=6, nullable=False)
     investment_amount: Decimal = Field(max_digits=18, decimal_places=2, nullable=False)
@@ -32,4 +30,4 @@ class Investment(SQLModel, table=True):
     updated_at: datetime = Field(default_factory=datetime.utcnow, nullable=False)
 
     company: Optional["AssetManagementCompany"] = Relationship()
-    sub_investment_type: Optional["SubInvestmentType"] = Relationship()
+    investment_type: Optional["InvestmentType"] = Relationship()

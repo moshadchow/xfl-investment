@@ -1,21 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import {
-  CartesianGrid,
-  Legend,
-  Line,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-  ComposedChart,
-} from 'recharts'
+import { useCallback, useEffect, useState } from 'react'
 import client from '../../api/client'
-import { formatBDT2 } from '../../utils/format'
+import { formatBDT0, formatBDT2 } from '../../utils/format'
+import { useAuth } from '../../hooks/useAuth'
 
 const EMPTY_FORM = {
   asset_management_company_id: '',
-  investment_type: '',
-  sub_investment_type_id: '',
+  investment_type_id: '',
+  investment_id: '',
   investment_date: '',
   investment_amount: '',
   market_value: '',
@@ -24,9 +15,10 @@ const EMPTY_FORM = {
 }
 
 const EMPTY_FILTERS = {
+  search: '',
   asset_management_company_id: '',
-  investment_type: '',
-  sub_investment_type_id: '',
+  investment_type_id: '',
+  investment_id: '',
   from_date: '',
   to_date: '',
 }
@@ -36,24 +28,24 @@ function formatDate(value) {
   return new Date(value).toLocaleDateString()
 }
 
-function formatGainLoss(value) {
-  if (value == null || Number.isNaN(Number(value))) return '—'
-  return formatBDT2(value)
-}
-
 function calculateGainLoss(marketValue, investmentAmount) {
-  if (marketValue === '' || investmentAmount === '') return ''
   const market = Number(marketValue)
   const amount = Number(investmentAmount)
   if (Number.isNaN(market) || Number.isNaN(amount)) return ''
-  return (market - amount).toFixed(2)
+  return String(market - amount)
 }
 
-function buildPayload(form) {
+function buildCreatePayload(form) {
   return {
-    asset_management_company_id: Number(form.asset_management_company_id),
-    investment_type: form.investment_type,
-    sub_investment_type_id: Number(form.sub_investment_type_id),
+    investment_id: Number(form.investment_id),
+    investment_date: form.investment_date,
+    market_value: Number(form.market_value),
+    nav: Number(form.nav),
+  }
+}
+
+function buildUpdatePayload(form) {
+  return {
     investment_date: form.investment_date,
     market_value: Number(form.market_value),
     nav: Number(form.nav),
@@ -61,80 +53,48 @@ function buildPayload(form) {
 }
 
 function InvestmentDetailsManager() {
+  const { hasPermission } = useAuth()
+  const canCreate = hasPermission('investment_details.create')
+  const canUpdate = hasPermission('investment_details.update')
+  const canDelete = hasPermission('investment_details.delete')
   const [items, setItems] = useState([])
   const [companies, setCompanies] = useState([])
   const [investmentTypeOptions, setInvestmentTypeOptions] = useState([])
-  const [subInvestmentTypeOptions, setSubInvestmentTypeOptions] = useState([])
+  const [investmentOptions, setInvestmentOptions] = useState([])
   const [filterInvestmentTypeOptions, setFilterInvestmentTypeOptions] = useState([])
-  const [filterSubInvestmentTypeOptions, setFilterSubInvestmentTypeOptions] = useState([])
+  const [filterInvestmentOptions, setFilterInvestmentOptions] = useState([])
   const [form, setForm] = useState(EMPTY_FORM)
   const [filters, setFilters] = useState(EMPTY_FILTERS)
   const [editingId, setEditingId] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [actionError, setActionError] = useState(null)
+  const [formError, setFormError] = useState(null)
+  const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [actionError, setActionError] = useState('')
-  const [formError, setFormError] = useState('')
   const [sortBy, setSortBy] = useState('investment_date')
   const [sortDir, setSortDir] = useState('desc')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [total, setTotal] = useState(0)
 
-  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const totalPages = Math.max(Math.ceil(total / pageSize), 1)
 
-  const chartData = useMemo(
-    () =>
-      [...items]
-        .sort((a, b) => new Date(a.investment_date) - new Date(b.investment_date))
-        .map((item) => ({
-          date: item.investment_date,
-          investment_amount: Number(item.investment_amount),
-          market_value: Number(item.market_value),
-          gain_loss: Number(item.gain_loss),
-        })),
-    [items],
-  )
-
-  const loadCompanies = useCallback(async () => {
-    const res = await client.get('/companies/list')
-    setCompanies(res.data)
-  }, [])
-
-  const loadInvestmentTypes = useCallback(async (companyId, setter = setInvestmentTypeOptions) => {
-    if (!companyId) {
-      setter([])
-      return
-    }
-    const res = await client.get('/investments/options/investment-types', {
-      params: { asset_management_company_id: Number(companyId) },
-    })
-    setter(res.data)
-  }, [])
-
-  const loadSubInvestmentTypes = useCallback(async (companyId, investmentType, setter = setSubInvestmentTypeOptions) => {
-    if (!companyId || !investmentType) {
-      setter([])
-      return
-    }
-    const res = await client.get('/investments/options/sub-investment-types', {
-      params: {
-        asset_management_company_id: Number(companyId),
-        investment_type: investmentType,
-      },
-    })
-    setter(res.data)
-  }, [])
-
-  const loadItems = useCallback(async () => {
+  const fetchItems = useCallback(async () => {
     setLoading(true)
-    setActionError('')
+    setActionError(null)
     try {
-      const params = { sort_by: sortBy, sort_dir: sortDir, page, page_size: pageSize }
+      const params = {
+        page,
+        page_size: pageSize,
+        sort_by: sortBy,
+        sort_dir: sortDir,
+      }
+      if (filters.search.trim()) params.search = filters.search.trim()
       if (filters.asset_management_company_id) params.asset_management_company_id = Number(filters.asset_management_company_id)
-      if (filters.investment_type) params.investment_type = filters.investment_type
-      if (filters.sub_investment_type_id) params.sub_investment_type_id = Number(filters.sub_investment_type_id)
+      if (filters.investment_type_id) params.investment_type_id = Number(filters.investment_type_id)
+      if (filters.investment_id) params.investment_id = Number(filters.investment_id)
       if (filters.from_date) params.from_date = filters.from_date
       if (filters.to_date) params.to_date = filters.to_date
+
       const res = await client.get('/investment-details', { params })
       setItems(res.data.items)
       setTotal(res.data.total)
@@ -145,98 +105,166 @@ function InvestmentDetailsManager() {
     }
   }, [filters, page, pageSize, sortBy, sortDir])
 
-  useEffect(() => {
-    loadCompanies().catch((err) => {
-      setActionError(err.response?.data?.detail ?? 'Failed to load companies')
+  const loadInvestmentTypeOptions = useCallback(async (companyId, setter = setInvestmentTypeOptions) => {
+    if (!companyId) {
+      setter([])
+      return []
+    }
+    const res = await client.get('/investments/options/investment-types', {
+      params: { asset_management_company_id: Number(companyId) },
     })
-  }, [loadCompanies])
+    setter(res.data)
+    return res.data
+  }, [])
+
+  const loadInvestmentOptions = useCallback(async (companyId, investmentTypeId, setter = setInvestmentOptions) => {
+    if (!companyId || !investmentTypeId) {
+      setter([])
+      return []
+    }
+    const res = await client.get('/investment-details/options/investments', {
+      params: {
+        asset_management_company_id: Number(companyId),
+        investment_type_id: Number(investmentTypeId),
+      },
+    })
+    setter(res.data)
+    return res.data
+  }, [])
 
   useEffect(() => {
-    loadItems()
-  }, [loadItems])
+    client.get('/companies/list')
+      .then((res) => setCompanies(res.data))
+      .catch(() => setActionError('Failed to load companies'))
+  }, [])
 
-  const validateForm = () => {
-    if (!form.asset_management_company_id) return 'AMC is required'
-    if (!form.investment_type) return 'Investment type is required'
-    if (!form.sub_investment_type_id) return 'Sub-investment type is required'
-    if (!form.investment_date) return 'Investment date is required'
-    if (form.market_value === '' || Number(form.market_value) < 0) return 'Market value must be greater than or equal to zero'
-    if (form.nav === '' || Number(form.nav) <= 0) return 'NAV must be greater than zero'
-    return ''
-  }
+  useEffect(() => {
+    fetchItems()
+  }, [fetchItems])
 
-  const handleFormChange = (event) => {
-    const { name, value } = event.target
+  useEffect(() => {
+    if (filters.asset_management_company_id) {
+      loadInvestmentTypeOptions(filters.asset_management_company_id, setFilterInvestmentTypeOptions).catch(() => {
+        setFilterInvestmentTypeOptions([])
+      })
+    } else {
+      setFilterInvestmentTypeOptions([])
+      setFilterInvestmentOptions([])
+      setFilters((current) => ({ ...current, investment_type_id: '', investment_id: '' }))
+    }
+  }, [filters.asset_management_company_id, loadInvestmentTypeOptions])
+
+  useEffect(() => {
+    if (filters.asset_management_company_id && filters.investment_type_id) {
+      loadInvestmentOptions(filters.asset_management_company_id, filters.investment_type_id, setFilterInvestmentOptions).catch(() => {
+        setFilterInvestmentOptions([])
+      })
+    } else {
+      setFilterInvestmentOptions([])
+      setFilters((current) => ({ ...current, investment_id: '' }))
+    }
+  }, [filters.asset_management_company_id, filters.investment_type_id, loadInvestmentOptions])
+
+  function handleFormChange(e) {
+    const { name, value } = e.target
     setForm((current) => {
-      if (name === 'asset_management_company_id') {
-        loadInvestmentTypes(value).catch((err) => setFormError(err.response?.data?.detail ?? 'Failed to load investment types'))
-        setSubInvestmentTypeOptions([])
-        return {
-          ...current,
-          asset_management_company_id: value,
-          investment_type: '',
-          sub_investment_type_id: '',
-          investment_amount: '',
-          gain_loss: '',
-        }
-      }
-      if (name === 'investment_type') {
-        loadSubInvestmentTypes(current.asset_management_company_id, value).catch((err) => setFormError(err.response?.data?.detail ?? 'Failed to load sub-investment types'))
-        return {
-          ...current,
-          investment_type: value,
-          sub_investment_type_id: '',
-          investment_amount: '',
-          gain_loss: '',
-        }
-      }
-      if (name === 'sub_investment_type_id') {
-        return {
-          ...current,
-          sub_investment_type_id: value,
-          investment_amount: '',
-          gain_loss: '',
-        }
-      }
+      const next = { ...current, [name]: value }
       if (name === 'market_value') {
-        return { ...current, market_value: value, gain_loss: calculateGainLoss(value, current.investment_amount) }
+        next.gain_loss = calculateGainLoss(value, current.investment_amount)
       }
-      return { ...current, [name]: value }
+      return next
     })
   }
 
-  const handleFilterChange = (event) => {
-    const { name, value } = event.target
+  async function handleCompanyChange(e) {
+    const companyId = e.target.value
+    setForm((current) => ({
+      ...current,
+      asset_management_company_id: companyId,
+      investment_type_id: '',
+      investment_id: '',
+      investment_amount: '',
+      gain_loss: '',
+    }))
+    setInvestmentTypeOptions([])
+    setInvestmentOptions([])
+    setFormError(null)
+    if (companyId) {
+      try {
+        await loadInvestmentTypeOptions(companyId)
+      } catch {
+        setFormError('Failed to load investment types')
+      }
+    }
+  }
+
+  async function handleInvestmentTypeChange(e) {
+    const investmentTypeId = e.target.value
+    setForm((current) => ({
+      ...current,
+      investment_type_id: investmentTypeId,
+      investment_id: '',
+      investment_amount: '',
+      gain_loss: '',
+    }))
+    setInvestmentOptions([])
+    setFormError(null)
+    if (form.asset_management_company_id && investmentTypeId) {
+      try {
+        await loadInvestmentOptions(form.asset_management_company_id, investmentTypeId)
+      } catch {
+        setFormError('Failed to load investments')
+      }
+    }
+  }
+
+  function handleInvestmentChange(e) {
+    const investmentId = e.target.value
+    const investment = investmentOptions.find((item) => String(item.id) === investmentId)
+    const investmentAmount = investment ? String(investment.investment_amount) : ''
+    setForm((current) => ({
+      ...current,
+      investment_id: investmentId,
+      investment_amount: investmentAmount,
+      gain_loss: calculateGainLoss(current.market_value, investmentAmount),
+    }))
+  }
+
+  function handleFilterChange(e) {
+    const { name, value } = e.target
     setFilters((current) => {
       if (name === 'asset_management_company_id') {
-        loadInvestmentTypes(value, setFilterInvestmentTypeOptions).catch((err) => setActionError(err.response?.data?.detail ?? 'Failed to load investment types'))
-        setFilterSubInvestmentTypeOptions([])
-        return { ...current, asset_management_company_id: value, investment_type: '', sub_investment_type_id: '' }
+        return { ...current, asset_management_company_id: value, investment_type_id: '', investment_id: '' }
       }
-      if (name === 'investment_type') {
-        loadSubInvestmentTypes(current.asset_management_company_id, value, setFilterSubInvestmentTypeOptions).catch((err) => setActionError(err.response?.data?.detail ?? 'Failed to load sub-investment types'))
-        return { ...current, investment_type: value, sub_investment_type_id: '' }
+      if (name === 'investment_type_id') {
+        return { ...current, investment_type_id: value, investment_id: '' }
       }
       return { ...current, [name]: value }
     })
     setPage(1)
   }
 
-  const resetForm = () => {
-    setForm(EMPTY_FORM)
-    setInvestmentTypeOptions([])
-    setSubInvestmentTypeOptions([])
-    setEditingId(null)
-    setFormError('')
+  function handleSort(column) {
+    setPage(1)
+    if (sortBy === column) {
+      setSortDir((current) => (current === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortBy(column)
+      setSortDir('asc')
+    }
   }
 
-  const startEdit = async (item) => {
+  async function handleEdit(item) {
     setEditingId(item.id)
-    setFormError('')
+    setFormError(null)
+    setActionError(null)
+    const companyId = String(item.asset_management_company_id)
+    const investmentTypeId = String(item.investment_type_id)
+    const investmentId = String(item.investment_id)
     setForm({
-      asset_management_company_id: String(item.asset_management_company_id),
-      investment_type: item.investment_type,
-      sub_investment_type_id: String(item.sub_investment_type_id),
+      asset_management_company_id: companyId,
+      investment_type_id: investmentTypeId,
+      investment_id: investmentId,
       investment_date: item.investment_date,
       investment_amount: String(item.investment_amount),
       market_value: String(item.market_value),
@@ -244,32 +272,69 @@ function InvestmentDetailsManager() {
       gain_loss: String(item.gain_loss),
     })
     try {
-      await loadInvestmentTypes(item.asset_management_company_id)
-      await loadSubInvestmentTypes(item.asset_management_company_id, item.investment_type)
-    } catch (err) {
-      setFormError(err.response?.data?.detail ?? 'Failed to load edit options')
+      await loadInvestmentTypeOptions(companyId)
+      await loadInvestmentOptions(companyId, investmentTypeId)
+    } catch {
+      setFormError('Failed to load investment options for editing')
     }
   }
 
-  const handleSubmit = async (event) => {
-    event.preventDefault()
-    const error = validateForm()
-    if (error) {
-      setFormError(error)
+  function handleCancelEdit() {
+    setEditingId(null)
+    setForm(EMPTY_FORM)
+    setInvestmentTypeOptions([])
+    setInvestmentOptions([])
+    setFormError(null)
+  }
+
+  async function handleDelete(item) {
+    if (!confirm(`Delete investment detail for ${item.investment_code} on ${item.investment_date}?`)) return
+
+    setActionError(null)
+    try {
+      await client.delete(`/investment-details/${item.id}`)
+      setItems((current) => current.filter((row) => row.id !== item.id))
+      setTotal((current) => Math.max(current - 1, 0))
+      if (editingId === item.id) handleCancelEdit()
+    } catch (err) {
+      setActionError(err.response?.data?.detail ?? 'Failed to delete investment detail')
+    }
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+
+    if (!form.investment_id) {
+      setFormError('Investment is required')
+      return
+    }
+    if (!form.investment_date) {
+      setFormError('Investment date is required')
+      return
+    }
+    if (form.market_value === '' || Number(form.market_value) < 0) {
+      setFormError('Market value must be greater than or equal to zero')
+      return
+    }
+    if (!form.nav || Number(form.nav) <= 0) {
+      setFormError('NAV must be greater than zero')
       return
     }
 
     setSubmitting(true)
-    setFormError('')
+    setFormError(null)
     try {
-      const payload = buildPayload(form)
       if (editingId) {
-        await client.put(`/investment-details/${editingId}`, payload)
+        const res = await client.put(`/investment-details/${editingId}`, buildUpdatePayload(form))
+        setItems((current) => current.map((row) => (row.id === editingId ? res.data : row)))
+        setEditingId(null)
       } else {
-        await client.post('/investment-details', payload)
+        await client.post('/investment-details', buildCreatePayload(form))
+        await fetchItems()
       }
-      resetForm()
-      await loadItems()
+      setForm(EMPTY_FORM)
+      setInvestmentTypeOptions([])
+      setInvestmentOptions([])
     } catch (err) {
       setFormError(err.response?.data?.detail ?? 'Failed to save investment detail')
     } finally {
@@ -277,193 +342,215 @@ function InvestmentDetailsManager() {
     }
   }
 
-  const handleDelete = async (item) => {
-    if (!window.confirm(`Delete investment detail for ${item.investment_code} on ${item.investment_date}?`)) return
-    setActionError('')
-    try {
-      await client.delete(`/investment-details/${item.id}`)
-      await loadItems()
-    } catch (err) {
-      setActionError(err.response?.data?.detail ?? 'Failed to delete investment detail')
-    }
-  }
-
-  const handleSort = (column) => {
-    if (sortBy === column) {
-      setSortDir((current) => (current === 'asc' ? 'desc' : 'asc'))
-    } else {
-      setSortBy(column)
-      setSortDir('asc')
-    }
-    setPage(1)
-  }
-
-  const sortLabel = (column) => (sortBy === column ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '')
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900">Investment Details</h1>
-        <p className="text-sm text-gray-600">Maintain periodic market value, NAV, and gain/loss records.</p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="rounded border border-gray-200 bg-white p-4 shadow-sm">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-medium text-gray-900">{editingId ? 'Edit Investment Detail' : 'Create Investment Detail'}</h2>
-          {editingId && (
-            <button type="button" onClick={resetForm} className="text-sm text-blue-600 hover:underline">
-              Cancel edit
-            </button>
-          )}
-        </div>
-        {formError && <div className="mb-4 rounded bg-red-50 p-3 text-sm text-red-700">{formError}</div>}
-        <div className="grid gap-4 md:grid-cols-4">
-          <label className="text-sm text-gray-700">
-            AMC
-            <select name="asset_management_company_id" value={form.asset_management_company_id} onChange={handleFormChange} className="mt-1 w-full rounded border border-gray-300 px-3 py-2">
-              <option value="">Select AMC</option>
-              {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
-            </select>
-          </label>
-          <label className="text-sm text-gray-700">
-            Investment Type
-            <select name="investment_type" value={form.investment_type} onChange={handleFormChange} className="mt-1 w-full rounded border border-gray-300 px-3 py-2">
-              <option value="">Select Type</option>
-              {investmentTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
-          </label>
-          <label className="text-sm text-gray-700">
-            Sub-Investment Type
-            <select name="sub_investment_type_id" value={form.sub_investment_type_id} onChange={handleFormChange} className="mt-1 w-full rounded border border-gray-300 px-3 py-2">
-              <option value="">Select Sub-Type</option>
-              {subInvestmentTypeOptions.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
-            </select>
-          </label>
-          <label className="text-sm text-gray-700">
-            Investment Date
-            <input type="date" name="investment_date" value={form.investment_date} onChange={handleFormChange} className="mt-1 w-full rounded border border-gray-300 px-3 py-2" />
-          </label>
-          <label className="text-sm text-gray-700">
-            Investment Amount
-            <input name="investment_amount" value={form.investment_amount || 'Auto-loaded after save'} readOnly className="mt-1 w-full rounded border border-gray-300 bg-gray-100 px-3 py-2" />
-          </label>
-          <label className="text-sm text-gray-700">
-            Market Value
-            <input type="number" min="0" step="0.01" name="market_value" value={form.market_value} onChange={handleFormChange} className="mt-1 w-full rounded border border-gray-300 px-3 py-2" />
-          </label>
-          <label className="text-sm text-gray-700">
-            NAV
-            <input type="number" min="0.0001" step="0.0001" name="nav" value={form.nav} onChange={handleFormChange} className="mt-1 w-full rounded border border-gray-300 px-3 py-2" />
-          </label>
-          <label className="text-sm text-gray-700">
-            Gain/Loss
-            <input name="gain_loss" value={form.gain_loss} readOnly className="mt-1 w-full rounded border border-gray-300 bg-gray-100 px-3 py-2" />
-          </label>
-        </div>
-        <div className="mt-4 flex justify-end">
-          <button type="submit" disabled={submitting} className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60">
-            {submitting ? 'Saving...' : editingId ? 'Update Detail' : 'Create Detail'}
-          </button>
-        </div>
-      </form>
-
-      <div className="rounded border border-gray-200 bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-lg font-medium text-gray-900">Filters</h2>
-        <div className="grid gap-3 md:grid-cols-4 lg:grid-cols-6">
-          <select name="asset_management_company_id" value={filters.asset_management_company_id} onChange={handleFilterChange} className="rounded border border-gray-300 px-3 py-2 text-sm">
-            <option value="">All AMCs</option>
-            {companies.map((company) => <option key={company.id} value={company.id}>{company.name}</option>)}
-          </select>
-          <select name="investment_type" value={filters.investment_type} onChange={handleFilterChange} className="rounded border border-gray-300 px-3 py-2 text-sm">
-            <option value="">All Types</option>
-            {filterInvestmentTypeOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-          <select name="sub_investment_type_id" value={filters.sub_investment_type_id} onChange={handleFilterChange} className="rounded border border-gray-300 px-3 py-2 text-sm">
-            <option value="">All Sub-Types</option>
-            {filterSubInvestmentTypeOptions.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
-          </select>
-          <input type="date" name="from_date" value={filters.from_date} onChange={handleFilterChange} className="rounded border border-gray-300 px-3 py-2 text-sm" />
-          <input type="date" name="to_date" value={filters.to_date} onChange={handleFilterChange} className="rounded border border-gray-300 px-3 py-2 text-sm" />
-        </div>
-      </div>
-
-      {chartData.length > 0 && (
-        <div className="rounded border border-gray-200 bg-white p-4 shadow-sm">
-          <h2 className="mb-3 text-lg font-medium text-gray-900">Historical Trend</h2>
-          <ResponsiveContainer width="100%" height={320}>
-            <ComposedChart data={chartData} margin={{ top: 8, right: 24, left: 16, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis tick={{ fontSize: 12 }} tickFormatter={(value) => formatBDT2(value)} />
-              <Tooltip formatter={(value) => formatBDT2(value)} />
-              <Legend />
-              <Line type="monotone" dataKey="investment_amount" name="Investment Amount" stroke="#3b82f6" dot={false} strokeWidth={2} />
-              <Line type="monotone" dataKey="market_value" name="Market Value" stroke="#22c55e" dot={false} strokeWidth={2} />
-              <Line type="monotone" dataKey="gain_loss" name="Gain/Loss" stroke="#f97316" dot={false} strokeWidth={2} />
-            </ComposedChart>
-          </ResponsiveContainer>
+    <div>
+      {actionError && (
+        <div className="mb-4 flex items-center justify-between rounded bg-red-50 px-4 py-2 text-sm text-red-700">
+          <span>{actionError}</span>
+          <button onClick={() => setActionError(null)} className="ml-4 font-bold">x</button>
         </div>
       )}
 
-      <div className="rounded border border-gray-200 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-gray-200 p-4">
-          <h2 className="text-lg font-medium text-gray-900">Investment Detail Records</h2>
-          <select value={pageSize} onChange={(event) => { setPageSize(Number(event.target.value)); setPage(1) }} className="rounded border border-gray-300 px-2 py-1 text-sm">
-            {[10, 25, 50].map((size) => <option key={size} value={size}>{size} / page</option>)}
+      <div className="mb-4 grid gap-3 rounded border border-gray-200 bg-white p-4 md:grid-cols-6">
+        <div>
+          <label className="mb-1 block text-xs text-gray-600">Search</label>
+          <input
+            name="search"
+            value={filters.search}
+            onChange={handleFilterChange}
+            placeholder="Investment code"
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-gray-600">AMC</label>
+          <select
+            name="asset_management_company_id"
+            value={filters.asset_management_company_id}
+            onChange={handleFilterChange}
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">All AMCs</option>
+            {companies.map((company) => (
+              <option key={company.id} value={company.id}>{company.name}</option>
+            ))}
           </select>
         </div>
-        {actionError && <div className="m-4 rounded bg-red-50 p-3 text-sm text-red-700">{actionError}</div>}
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 text-sm">
-            <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
-              <tr>
-                <th className="px-4 py-3">AMC</th>
-                <th className="px-4 py-3">Investment Type</th>
-                <th className="px-4 py-3">Sub-Type</th>
-                <th className="px-4 py-3">Investment Code</th>
-                <th className="px-4 py-3"><button type="button" onClick={() => handleSort('investment_date')}>Investment Date{sortLabel('investment_date')}</button></th>
-                <th className="px-4 py-3"><button type="button" onClick={() => handleSort('investment_amount')}>Investment Amount{sortLabel('investment_amount')}</button></th>
-                <th className="px-4 py-3"><button type="button" onClick={() => handleSort('market_value')}>Market Value{sortLabel('market_value')}</button></th>
-                <th className="px-4 py-3"><button type="button" onClick={() => handleSort('nav')}>NAV{sortLabel('nav')}</button></th>
-                <th className="px-4 py-3"><button type="button" onClick={() => handleSort('gain_loss')}>Gain/Loss{sortLabel('gain_loss')}</button></th>
-                <th className="px-4 py-3"><button type="button" onClick={() => handleSort('created_at')}>Created{sortLabel('created_at')}</button></th>
-                <th className="px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200 bg-white">
-              {loading ? (
-                <tr><td colSpan="11" className="px-4 py-6 text-center text-gray-500">Loading...</td></tr>
-              ) : items.length === 0 ? (
-                <tr><td colSpan="11" className="px-4 py-6 text-center text-gray-500">No investment details found.</td></tr>
-              ) : items.map((item) => (
-                <tr key={item.id}>
-                  <td className="px-4 py-3">{item.asset_management_company_name ?? '—'}</td>
-                  <td className="px-4 py-3">{item.investment_type}</td>
-                  <td className="px-4 py-3">{item.sub_investment_type_name ?? '—'}</td>
-                  <td className="px-4 py-3 font-medium text-gray-900">{item.investment_code}</td>
-                  <td className="px-4 py-3">{formatDate(item.investment_date)}</td>
-                  <td className="px-4 py-3">{formatBDT2(item.investment_amount)}</td>
-                  <td className="px-4 py-3">{formatBDT2(item.market_value)}</td>
-                  <td className="px-4 py-3">{formatBDT2(item.nav)}</td>
-                  <td className={`px-4 py-3 ${Number(item.gain_loss) < 0 ? 'text-red-600' : 'text-green-700'}`}>{formatGainLoss(item.gain_loss)}</td>
-                  <td className="px-4 py-3">{formatDate(item.created_at)}</td>
-                  <td className="space-x-2 px-4 py-3">
-                    <button type="button" onClick={() => startEdit(item)} className="text-blue-600 hover:underline">View / Edit</button>
-                    <button type="button" onClick={() => handleDelete(item)} className="text-red-600 hover:underline">Delete</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div>
+          <label className="mb-1 block text-xs text-gray-600">Investment Type</label>
+          <select
+            name="investment_type_id"
+            value={filters.investment_type_id}
+            onChange={handleFilterChange}
+            disabled={!filters.asset_management_company_id}
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+          >
+            <option value="">All Types</option>
+            {filterInvestmentTypeOptions.map((option) => (
+              <option key={option.id} value={option.id}>{option.investment_type_name}</option>
+            ))}
+          </select>
         </div>
-        <div className="flex items-center justify-between border-t border-gray-200 p-4 text-sm text-gray-600">
-          <span>Page {page} of {totalPages} ({total} records)</span>
-          <div className="space-x-2">
-            <button type="button" disabled={page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))} className="rounded border border-gray-300 px-3 py-1 disabled:opacity-50">Previous</button>
-            <button type="button" disabled={page >= totalPages} onClick={() => setPage((current) => Math.min(totalPages, current + 1))} className="rounded border border-gray-300 px-3 py-1 disabled:opacity-50">Next</button>
-          </div>
+        <div>
+          <label className="mb-1 block text-xs text-gray-600">Investment</label>
+          <select
+            name="investment_id"
+            value={filters.investment_id}
+            onChange={handleFilterChange}
+            disabled={!filters.asset_management_company_id || !filters.investment_type_id}
+            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+          >
+            <option value="">All Investments</option>
+            {filterInvestmentOptions.map((option) => (
+              <option key={option.id} value={option.id}>{option.investment_code}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-gray-600">From</label>
+          <input type="date" name="from_date" value={filters.from_date} onChange={handleFilterChange} className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-gray-600">To</label>
+          <input type="date" name="to_date" value={filters.to_date} onChange={handleFilterChange} className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
       </div>
+
+      <div className="mb-6 overflow-x-auto">
+        <div className="mb-2 flex justify-end">
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value))
+              setPage(1)
+            }}
+            className="rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+          </select>
+        </div>
+        <table className="w-full border-collapse rounded border border-gray-200 bg-white text-sm">
+          <thead>
+            <tr className="bg-gray-100 text-left text-gray-600">
+              <th className="px-4 py-2 font-medium">Investment Code</th>
+              <th className="px-4 py-2 font-medium">AMC</th>
+              <th className="px-4 py-2 font-medium">Investment Type</th>
+              <th className="px-4 py-2 font-medium"><button type="button" onClick={() => handleSort('investment_date')}>Date</button></th>
+              <th className="px-4 py-2 font-medium"><button type="button" onClick={() => handleSort('investment_amount')}>Investment Amount</button></th>
+              <th className="px-4 py-2 font-medium"><button type="button" onClick={() => handleSort('market_value')}>Market Value</button></th>
+              <th className="px-4 py-2 font-medium"><button type="button" onClick={() => handleSort('nav')}>NAV</button></th>
+              <th className="px-4 py-2 font-medium"><button type="button" onClick={() => handleSort('gain_loss')}>Gain/Loss</button></th>
+              <th className="px-4 py-2 font-medium">Created</th>
+              <th className="px-4 py-2 font-medium">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={10} className="px-4 py-4 text-center text-gray-400">Loading…</td>
+              </tr>
+            ) : items.length === 0 ? (
+              <tr>
+                <td colSpan={10} className="px-4 py-4 text-center text-gray-400">No investment details found.</td>
+              </tr>
+            ) : (
+              items.map((item) => (
+                <tr key={item.id} className="border-t border-gray-200">
+                  <td className="px-4 py-2 text-gray-800">{item.investment_code}</td>
+                  <td className="px-4 py-2 text-gray-600">{item.asset_management_company_name ?? '—'}</td>
+                  <td className="px-4 py-2 text-gray-600">{item.investment_type_name}</td>
+                  <td className="px-4 py-2 text-gray-600">{formatDate(item.investment_date)}</td>
+                  <td className="px-4 py-2 text-gray-600">{formatBDT0(item.investment_amount)}</td>
+                  <td className="px-4 py-2 text-gray-600">{formatBDT0(item.market_value)}</td>
+                  <td className="px-4 py-2 text-gray-600">{formatBDT2(item.nav)}</td>
+                  <td className={`px-4 py-2 ${Number(item.gain_loss) >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatBDT0(item.gain_loss)}</td>
+                  <td className="px-4 py-2 text-gray-600">{formatDate(item.created_at)}</td>
+                  <td className="flex gap-2 px-4 py-2">
+                    {canUpdate && (
+                      <button onClick={() => handleEdit(item)} className="rounded bg-blue-50 px-2 py-1 text-xs text-blue-600 hover:bg-blue-100">View / Edit</button>
+                    )}
+                    {canDelete && (
+                      <button onClick={() => handleDelete(item)} className="rounded bg-red-50 px-2 py-1 text-xs text-red-600 hover:bg-red-100">Delete</button>
+                    )}
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mb-8 flex items-center justify-between text-sm text-gray-600">
+        <span>Page {page} of {totalPages} ({total} records)</span>
+        <div className="flex gap-2">
+          <button type="button" disabled={page <= 1} onClick={() => setPage((current) => Math.max(current - 1, 1))} className="rounded bg-gray-100 px-3 py-1 disabled:opacity-50">Previous</button>
+          <button type="button" disabled={page >= totalPages} onClick={() => setPage((current) => current + 1)} className="rounded bg-gray-100 px-3 py-1 disabled:opacity-50">Next</button>
+        </div>
+      </div>
+
+      {(canCreate || (canUpdate && editingId)) && (
+        <form onSubmit={handleSubmit} className="flex max-w-5xl flex-col gap-3">
+        <h3 className="text-sm font-medium text-gray-700">{editingId ? 'Edit Investment Detail' : 'Add Investment Detail'}</h3>
+        <div className="grid gap-3 md:grid-cols-3">
+          <div>
+            <label className="mb-1 block text-xs text-gray-600">Asset Management Company</label>
+            <select name="asset_management_company_id" required value={form.asset_management_company_id} onChange={handleCompanyChange} disabled={Boolean(editingId)} className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
+              <option value="">Select AMC…</option>
+              {companies.filter((company) => company.is_active).map((company) => (
+                <option key={company.id} value={company.id}>{company.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-gray-600">Investment Type</label>
+            <select name="investment_type_id" required value={form.investment_type_id} onChange={handleInvestmentTypeChange} disabled={!form.asset_management_company_id || Boolean(editingId)} className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
+              <option value="">Select investment type…</option>
+              {investmentTypeOptions.map((option) => (
+                <option key={option.id} value={option.id}>{option.investment_type_name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-gray-600">Investment</label>
+            <select name="investment_id" required value={form.investment_id} onChange={handleInvestmentChange} disabled={!form.asset_management_company_id || !form.investment_type_id || Boolean(editingId)} className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100">
+              <option value="">Select investment…</option>
+              {investmentOptions.map((option) => (
+                <option key={option.id} value={option.id}>{option.investment_code}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-gray-600">Investment Date</label>
+            <input type="date" name="investment_date" required value={form.investment_date} onChange={handleFormChange} className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-gray-600">Investment Amount</label>
+            <input value={form.investment_amount ? formatBDT0(form.investment_amount) : ''} readOnly placeholder="Auto-loaded from investment" className="w-full rounded border border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-600" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-gray-600">Market Value</label>
+            <input type="number" min="0" step="0.01" name="market_value" required value={form.market_value} onChange={handleFormChange} className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-gray-600">NAV</label>
+            <input type="number" min="0.0001" step="0.0001" name="nav" required value={form.nav} onChange={handleFormChange} className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-gray-600">Gain/Loss</label>
+            <input value={form.gain_loss ? formatBDT0(form.gain_loss) : ''} readOnly className="w-full rounded border border-gray-300 bg-gray-100 px-3 py-2 text-sm text-gray-600" />
+          </div>
+        </div>
+        {formError && <p className="text-sm text-red-600">{formError}</p>}
+        <div className="flex gap-2">
+          <button type="submit" disabled={submitting} className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+            {submitting ? (editingId ? 'Updating…' : 'Creating…') : editingId ? 'Update Investment Detail' : 'Add Investment Detail'}
+          </button>
+          {editingId && <button type="button" onClick={handleCancelEdit} className="rounded bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300">Cancel</button>}
+        </div>
+        </form>
+      )}
     </div>
   )
 }

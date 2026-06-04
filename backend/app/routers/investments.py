@@ -8,11 +8,10 @@ from ..crud.investment import (
     get_investment_by_id,
     get_investment_types_for_company,
     get_investments,
-    get_sub_investment_type_options,
     update_investment,
 )
 from ..database import get_session
-from ..deps import require_admin
+from ..deps import require_permission
 from ..models.user import User
 from ..schemas.investment import (
     InvestmentCreate,
@@ -20,7 +19,6 @@ from ..schemas.investment import (
     InvestmentRead,
     InvestmentTypeOptionRead,
     InvestmentUpdate,
-    SubInvestmentTypeOptionRead,
 )
 
 router = APIRouter(prefix="/investments", tags=["investments"])
@@ -36,23 +34,21 @@ def _handle_validation_error(exc: ValueError) -> None:
 def list_investments(
     search: str | None = None,
     asset_management_company_id: int | None = None,
-    investment_type: str | None = None,
-    sub_investment_type_id: int | None = None,
+    investment_type_id: int | None = None,
     status_filter: str | None = Query(default=None, alias="status"),
     sort_by: str = "created_at",
     sort_dir: str = "desc",
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1, le=100),
     session: Session = Depends(get_session),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_permission("investments.view")),
 ):
     try:
         return get_investments(
             session,
             search=search,
             asset_management_company_id=asset_management_company_id,
-            investment_type=investment_type,
-            sub_investment_type_id=sub_investment_type_id,
+            investment_type_id=investment_type_id,
             status=status_filter,
             sort_by=sort_by,
             sort_dir=sort_dir,
@@ -67,30 +63,16 @@ def list_investments(
 def list_investment_type_options(
     asset_management_company_id: int,
     session: Session = Depends(get_session),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_permission("investments.view")),
 ):
     return get_investment_types_for_company(session, asset_management_company_id)
-
-
-@router.get("/options/sub-investment-types", response_model=list[SubInvestmentTypeOptionRead])
-def list_sub_investment_type_options(
-    asset_management_company_id: int,
-    investment_type: str,
-    session: Session = Depends(get_session),
-    _: User = Depends(require_admin),
-):
-    return get_sub_investment_type_options(
-        session,
-        company_id=asset_management_company_id,
-        investment_type=investment_type,
-    )
 
 
 @router.get("/{investment_id}", response_model=InvestmentRead)
 def get_investment_endpoint(
     investment_id: int,
     session: Session = Depends(get_session),
-    _: User = Depends(require_admin),
+    _: User = Depends(require_permission("investments.view")),
 ):
     item = get_investment_by_id(session, investment_id)
     if item is None:
@@ -104,7 +86,7 @@ def get_investment_endpoint(
 def create_investment_endpoint(
     data: InvestmentCreate,
     session: Session = Depends(get_session),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_permission("investments.create")),
 ):
     try:
         result = create_investment(session, data, current_user.id)
@@ -144,7 +126,7 @@ def update_investment_endpoint(
     investment_id: int,
     data: InvestmentUpdate,
     session: Session = Depends(get_session),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_permission("investments.update")),
 ):
     existing = get_investment_by_id(session, investment_id)
     if existing is None:
@@ -197,7 +179,7 @@ def update_investment_endpoint(
 def delete_investment_endpoint(
     investment_id: int,
     session: Session = Depends(get_session),
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_permission("investments.delete")),
 ):
     existing = get_investment_by_id(session, investment_id)
     if existing is None:

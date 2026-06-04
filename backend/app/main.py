@@ -7,16 +7,18 @@ from starlette.middleware.sessions import SessionMiddleware
 from sqlmodel import Session
 
 from .config import settings
+from .crud.permission import seed_permissions
 from .database import create_db_and_tables, engine, seed_roles
 from . import models  # noqa: F401 — registers all models with SQLModel.metadata
 from .routers import (
     auth,
     companies,
     fund_data,
+    investment_details,
+    investment_types,
     investments,
     report,
     roles,
-    sub_investment_types,
     users,
 )
 
@@ -26,6 +28,7 @@ async def lifespan(app: FastAPI):
     create_db_and_tables()
     with Session(engine) as session:
         seed_roles(session)
+        seed_permissions(session)
     yield
 
 
@@ -57,10 +60,6 @@ app.include_router(roles.router, prefix="/api/v1", tags=["roles"])
 app.include_router(users.router, prefix="/api/v1", tags=["users"])
 app.include_router(fund_data.router, prefix="/api/v1", tags=["fund-data"])
 app.include_router(report.router, prefix="/api/v1", tags=["report"])
-app.include_router(sub_investment_types.router, prefix="/api/v1", tags=["sub-investment-types"])
+app.include_router(investment_types.router, prefix="/api/v1", tags=["investment-types"])
 app.include_router(investments.router, prefix="/api/v1", tags=["investments"])
-
-
-@app.get("/health", tags=["health"])
-def health_check():
-    return {"status": "ok"}
+app.include_router(investment_details.router, prefix="/api/v1", tags=["investment-details"])

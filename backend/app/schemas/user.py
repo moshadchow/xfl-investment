@@ -23,6 +23,7 @@ class UserWithRole(SQLModel):
     username: str
     is_active: bool
     role: Optional[RoleRead] = None
+    permissions: list[str] = []
 
 
 class UserUpdate(SQLModel):
