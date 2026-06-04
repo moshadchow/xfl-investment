@@ -11,7 +11,7 @@ from ..crud.investment import (
     update_investment,
 )
 from ..database import get_session
-from ..deps import require_permission
+from ..deps import get_current_user, require_permission
 from ..models.user import User
 from ..schemas.investment import (
     InvestmentCreate,
@@ -63,7 +63,7 @@ def list_investments(
 def list_investment_type_options(
     asset_management_company_id: int,
     session: Session = Depends(get_session),
-    _: User = Depends(require_permission("investments.view")),
+    _: User = Depends(get_current_user),
 ):
     return get_investment_types_for_company(session, asset_management_company_id)
 

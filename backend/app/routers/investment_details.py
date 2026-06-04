@@ -13,7 +13,7 @@ from ..crud.investment_detail import (
     update_investment_detail,
 )
 from ..database import get_session
-from ..deps import require_permission
+from ..deps import get_current_user, require_permission
 from ..models.user import User
 from ..schemas.investment_detail import (
     InvestmentDetailCreate,
@@ -45,7 +45,7 @@ def list_investment_details(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=10, ge=1, le=100),
     session: Session = Depends(get_session),
-    _: User = Depends(require_permission("investment_details.view")),
+    _: User = Depends(get_current_user),
 ):
     return get_investment_details(
         session,
@@ -67,7 +67,7 @@ def list_investment_options(
     asset_management_company_id: int,
     investment_type_id: int,
     session: Session = Depends(get_session),
-    _: User = Depends(require_permission("investment_details.view")),
+    _: User = Depends(get_current_user),
 ):
     return get_investment_options_for_details(
         session,
@@ -80,7 +80,7 @@ def list_investment_options(
 def get_investment_detail_endpoint(
     investment_detail_id: int,
     session: Session = Depends(get_session),
-    _: User = Depends(require_permission("investment_details.view")),
+    _: User = Depends(get_current_user),
 ):
     item = get_investment_detail_by_id(session, investment_detail_id)
     if item is None:

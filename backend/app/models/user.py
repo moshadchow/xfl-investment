@@ -1,9 +1,8 @@
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 from sqlmodel import Field, Relationship, SQLModel
 
 if TYPE_CHECKING:
-    from .fund_data import FundData
     from .role import Role
 
 
@@ -14,4 +13,3 @@ class User(SQLModel, table=True):
     role_id: int = Field(foreign_key="role.id", nullable=False)
     is_active: bool = Field(default=True)
     role: Optional["Role"] = Relationship(back_populates="users")
-    fund_entries: List["FundData"] = Relationship(back_populates="creator")

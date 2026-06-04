@@ -37,18 +37,17 @@ def _validate_investment(session: Session, investment_id: int) -> Investment:
 
 
 def _to_read(item: InvestmentDetail, session: Session) -> InvestmentDetailRead:
-    session.refresh(item, attribute_names=["investment"])
-    investment = item.investment
-    if investment:
-        session.refresh(investment, attribute_names=["company", "investment_type"])
+    investment = session.get(Investment, item.investment_id)
+    company = investment.company if investment else None
+    investment_type = investment.investment_type if investment else None
     return InvestmentDetailRead(
         id=item.id,
         investment_id=item.investment_id,
         investment_code=investment.investment_code if investment else "",
         asset_management_company_id=investment.asset_management_company_id if investment else 0,
-        asset_management_company_name=investment.company.name if investment and investment.company else None,
+        asset_management_company_name=company.name if company else None,
         investment_type_id=investment.investment_type_id if investment else 0,
-        investment_type_name=investment.investment_type.investment_type_name if investment and investment.investment_type else "",
+        investment_type_name=investment_type.investment_type_name if investment_type else "",
         investment_date=item.investment_date,
         investment_amount=item.investment_amount,
         market_value=item.market_value,

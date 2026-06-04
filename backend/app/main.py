@@ -13,11 +13,9 @@ from . import models  # noqa: F401 — registers all models with SQLModel.metada
 from .routers import (
     auth,
     companies,
-    fund_data,
     investment_details,
     investment_types,
     investments,
-    report,
     roles,
     users,
 )
@@ -58,8 +56,11 @@ app.include_router(auth.router, prefix="/api/v1", tags=["auth"])
 app.include_router(companies.router, prefix="/api/v1", tags=["companies"])
 app.include_router(roles.router, prefix="/api/v1", tags=["roles"])
 app.include_router(users.router, prefix="/api/v1", tags=["users"])
-app.include_router(fund_data.router, prefix="/api/v1", tags=["fund-data"])
-app.include_router(report.router, prefix="/api/v1", tags=["report"])
 app.include_router(investment_types.router, prefix="/api/v1", tags=["investment-types"])
 app.include_router(investments.router, prefix="/api/v1", tags=["investments"])
 app.include_router(investment_details.router, prefix="/api/v1", tags=["investment-details"])
+
+
+@app.get("/health", tags=["health"])
+def health_check():
+    return {"status": "ok"}

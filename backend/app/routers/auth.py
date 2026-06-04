@@ -7,17 +7,19 @@ from ..database import get_session
 from ..deps import get_current_user
 from ..models.user import User
 from ..schemas.auth import LoginRequest
+from ..schemas.role import RoleRead
 from ..schemas.user import UserWithRole
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 def _to_user_with_role(user: User, session: Session) -> UserWithRole:
+    session.refresh(user, attribute_names=["role"])
     return UserWithRole(
         id=user.id,
         username=user.username,
         is_active=user.is_active,
-        role=user.role,
+        role=RoleRead(id=user.role.id, name=user.role.name) if user.role else None,
         permissions=sorted(get_role_permission_codes(session, user.role_id)),
     )
 

@@ -1,218 +1,107 @@
-# CLAUDE.md — XFL Investment Reporting Software
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
-Mini investment reporting tool. Admin inputs fund data; users view reports + charts.
 
----
+XFL Investment is a mini investment reporting tool. Admin users manage reference data and investment/fund entries; regular users view reports and charts.
 
 ## Tech Stack
 
-| Layer     | Tech                          |
-|-----------|-------------------------------|
-| DB        | MySQL                         |
-| Backend   | FastAPI + SQLModel            |
-| Auth      | Session-based (no JWT)        |
-| Frontend  | ReactJS + Recharts + Tailwind |
+- Backend: FastAPI, SQLModel, SQLAlchemy, MySQL, session-cookie auth via Starlette `SessionMiddleware`
+- Frontend: React 18, Vite, React Router v6, Axios, Recharts, Tailwind CSS
+- Auth: server-side session cookie only; no JWT
 
----
-
-## Repository Structure
-
-```
-XFL-investment/
-├── backend/
-│   ├── app/
-│   │   ├── main.py
-│   │   ├── database.py
-│   │   ├── models/
-│   │   │   ├── user.py
-│   │   │   ├── role.py
-│   │   │   └── fund_data.py
-│   │   ├── routers/
-│   │   │   ├── auth.py
-│   │   │   ├── roles.py
-│   │   │   ├── users.py
-│   │   │   └── fund_data.py
-│   │   ├── schemas/
-│   │   │   ├── user.py
-│   │   │   ├── role.py
-│   │   │   └── fund_data.py
-│   │   ├── crud/
-│   │   │   ├── user.py
-│   │   │   ├── role.py
-│   │   │   └── fund_data.py
-│   │   ├── deps.py
-│   │   └── config.py
-│   ├── requirements.txt
-│   └── .env
-│
-└── frontend/
-    ├── src/
-    │   ├── api/
-    │   │   └── client.js
-    │   ├── components/
-    │   │   ├── layout/
-    │   │   │   ├── Sidebar.jsx
-    │   │   │   └── Navbar.jsx
-    │   │   ├── admin/
-    │   │   │   ├── RoleManager.jsx
-    │   │   │   ├── UserManager.jsx
-    │   │   │   └── FundDataForm.jsx
-    │   │   └── user/
-    │   │       ├── ReportTable.jsx
-    │   │       └── ReportChart.jsx
-    │   ├── pages/
-    │   │   ├── Login.jsx
-    │   │   ├── AdminDashboard.jsx
-    │   │   └── UserDashboard.jsx
-    │   ├── context/
-    │   │   └── AuthContext.jsx
-    │   ├── hooks/
-    │   │   └── useAuth.js
-    │   ├── App.jsx
-    │   └── main.jsx
-    ├── tailwind.config.js
-    ├── vite.config.js
-    └── package.json
-```
-
----
-
-## Database Schema
-
-```sql
--- roles
-CREATE TABLE role (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(50) UNIQUE NOT NULL  -- 'admin' | 'user'
-);
-
--- users
-CREATE TABLE user (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(100) UNIQUE NOT NULL,
-    hashed_password VARCHAR(255) NOT NULL,
-    role_id INT NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (role_id) REFERENCES role(id)
-);
-
--- fund data
-CREATE TABLE fund_data (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    date DATE NOT NULL,
-    investment DECIMAL(18,4) NOT NULL,
-    market_value DECIMAL(18,4) NOT NULL,
-    nav DECIMAL(18,4) NOT NULL,
-    created_by INT,
-    FOREIGN KEY (created_by) REFERENCES user(id)
-);
-```
-
----
-
-## Backend Conventions
-
-- **Auth**: Session cookie via `itsdangerous` or FastAPI `SessionMiddleware`. No JWT.
-- **ORM**: SQLModel (combines SQLAlchemy + Pydantic).
-- **Router prefix**: `/api/v1/`
-- **CORS**: Allow frontend origin in dev (`localhost:5173`).
-- **Password**: Hash with `passlib[bcrypt]`.
-- **Env vars**: DB URL in `.env`, loaded via `pydantic-settings`.
-
-### Key Endpoints
-
-```
-POST   /api/v1/auth/login
-POST   /api/v1/auth/logout
-GET    /api/v1/auth/me
-
-GET    /api/v1/roles
-POST   /api/v1/roles
-
-GET    /api/v1/users
-POST   /api/v1/users
-PATCH  /api/v1/users/{id}
-DELETE /api/v1/users/{id}
-
-GET    /api/v1/fund-data?from_date=&to_date=
-POST   /api/v1/fund-data
-PUT    /api/v1/fund-data/{id}
-DELETE /api/v1/fund-data/{id}
-```
-
-### Dependency Pattern
-
-```python
-# deps.py
-def get_current_user(session: Session = Depends(get_session), ...) -> User: ...
-def require_admin(user: User = Depends(get_current_user)) -> User:
-    if user.role.name != "admin": raise HTTPException(403)
-    return user
-```
-
----
-
-## Frontend Conventions
-
-- **State**: React Context for auth (`AuthContext`), local state for forms.
-- **API calls**: Axios instance in `src/api/client.js` with `withCredentials: true`.
-- **Routing**: React Router v6. Protected routes via `<PrivateRoute>` wrapper.
-- **Role-based rendering**: Check `user.role` from context; redirect accordingly.
-- **Charts**: Recharts `ComposedChart` with `Line` for Investment, MarketValue, NAV.
-- **Date inputs**: Native `<input type="date">` for from/to filter.
-- **Tailwind**: Use `tailwind.config.js` for custom brand colors if needed.
-
-### Auth Flow
-
-```
-Login page → POST /auth/login → server sets cookie
-→ GET /auth/me on app load → populate AuthContext
-→ role === 'admin' → AdminDashboard
-→ role === 'user'  → UserDashboard
-```
-
----
-
-## Dev Setup
+## Development Commands
 
 ### Backend
+
 ```bash
 cd backend
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-# Set DATABASE_URL in .env
-uvicorn app.main:app --reload --port 8000
+./venv/Scripts/python.exe -m pip install -r requirements.txt
+./venv/Scripts/python.exe -m uvicorn app.main:app --reload --port 8000
 ```
 
+Required backend environment variables are loaded from `backend/.env` by `pydantic-settings`:
+
+```env
+DATABASE_URL=mysql+pymysql://user:password@host:3306/db_name
+SECRET_KEY=replace-me
+ALLOWED_ORIGINS=http://localhost:5173
+```
+
+There is no backend test runner configured in `requirements.txt` at this time.
+
 ### Frontend
+
 ```bash
 cd frontend
 npm install
-npm run dev   # vite on :5173
+npm run dev
+npm run build
+npm run preview
 ```
 
-### requirements.txt
-```
-fastapi
-uvicorn[standard]
-sqlmodel
-pymysql
-cryptography
-passlib[bcrypt]
-python-multipart
-pydantic-settings
-itsdangerous
-starlette
-```
+`frontend/package.json` currently defines only `dev`, `build`, and `preview`; there are no configured lint or test scripts.
 
----
+## High-Level Architecture
 
-## Key Rules
+### Backend layout
 
-1. Admin-only routes guarded by `require_admin` dep on backend + role check on frontend.
-2. No JWT — sessions only. Cookie must be `HttpOnly`, `SameSite=Lax`.
-3. All money fields `DECIMAL(18,4)` — never `FLOAT`.
-4. Fund data `GET` always requires `from_date` + `to_date` query params.
-5. Chart renders only when report data exists (no empty Recharts render).
-6. Migrations: use SQLModel `create_all` for dev; Alembic for prod.
+- `backend/app/main.py` creates the FastAPI app, configures session and CORS middleware, runs startup DB setup, and mounts all routers under `/api/v1`.
+- `backend/app/config.py` defines `DATABASE_URL`, `SECRET_KEY`, and `ALLOWED_ORIGINS` settings from `.env`.
+- `backend/app/database.py` owns the SQLModel engine/session dependency, calls `SQLModel.metadata.create_all()`, seeds default roles, and contains small schema-update helpers for existing dev databases.
+- `backend/app/deps.py` contains auth dependencies: `get_current_user()` reads `request.session["user_id"]`; `require_admin()` gates admin routes.
+- Backend features follow a consistent split:
+  - `models/` SQLModel table definitions and relationships
+  - `schemas/` request/response DTOs
+  - `crud/` database operations
+  - `routers/` FastAPI route handlers
+
+### Backend modules
+
+Core entities include users/roles, fund data, asset management companies, sub-investment types, investments, and audit logs. Admin CRUD routes use `require_admin`; authenticated user/report routes use `get_current_user` where needed.
+
+`backend/app/main.py` currently includes routers for:
+
+- `auth`
+- `companies`
+- `roles`
+- `users`
+- `fund_data`
+- `report`
+- `sub_investment_types`
+- `investments`
+
+### Frontend layout
+
+- `frontend/src/main.jsx` bootstraps React.
+- `frontend/src/App.jsx` defines routes and wraps the app with `ErrorBoundary`, `BrowserRouter`, and `AuthProvider`.
+- `frontend/src/context/AuthContext.jsx` loads `/auth/me` on startup and stores `{ user, setUser, loading, logout }`.
+- `frontend/src/hooks/useAuth.js` exposes auth context.
+- `frontend/src/api/client.js` is the shared Axios instance. It uses `baseURL: '/api/v1'`, `withCredentials: true`, and redirects most 401s to `/login` while excluding `/auth/login` and `/auth/me`.
+- `frontend/src/components/layout/PrivateRoute.jsx` protects authenticated routes and redirects non-admin users away from admin pages.
+- Admin pages are nested under `/admin` through `AdminDashboard` and render their section content through React Router `<Outlet />`.
+
+### Frontend routes
+
+- `/login` — login page; redirects authenticated users by role
+- `/admin` — admin dashboard shell
+- `/admin/roles` — role management
+- `/admin/users` — user management
+- `/admin/companies` — asset management company management
+- `/admin/sub-investment-types` — sub-investment type management
+- `/admin/investments` — investment management
+- `/dashboard` — regular user dashboard/report view
+
+## Project-Specific Rules
+
+1. Keep auth session-based. Do not introduce JWTs. Session cookies must remain `HttpOnly` and `SameSite=Lax`.
+2. Admin-only backend routes must use `require_admin` from `backend/app/deps.py`; frontend admin UI must also check `user.role.name === 'admin'`.
+3. Use the shared Axios client in `frontend/src/api/client.js` for frontend API calls so cookies are included.
+4. Financial fields must use `Decimal` in Python and SQLModel `Field(max_digits=..., decimal_places=...)`; never use `float` for money/NAV/unit values.
+5. SQLModel `create_all()` only creates missing tables. New columns for an existing dev database need explicit ALTER/update handling or a migration path.
+6. Use Pydantic/SQLModel schemas for API boundaries; avoid returning lazy ORM relationships unless they are explicitly loaded/serialized.
+7. Recharts components should render only when report data exists.
+8. Keep React styling in Tailwind utility classes; do not add inline styles for normal UI work.
+9. This project is developed through sequential specs in `.claude/specs/`. Use the `create-spec` skill for new roadmap features.
