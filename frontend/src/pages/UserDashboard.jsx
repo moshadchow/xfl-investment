@@ -14,6 +14,15 @@ function firstOfMonth() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
 }
 
+function mapInvestmentDetail(entry) {
+  return {
+    ...entry,
+    date: entry.investment_date,
+    investment: entry.investment_amount,
+    company_name: entry.asset_management_company_name,
+  }
+}
+
 function UserDashboard() {
   const [entries, setEntries] = useState([])
   const [companies, setCompanies] = useState([])
@@ -32,17 +41,17 @@ function UserDashboard() {
     setLoading(true)
     try {
       const params = { from_date: from, to_date: to }
-      if (cid) params.company_id = cid
+      if (cid) params.asset_management_company_id = cid
       if (investmentTypeId) params.investment_type_id = investmentTypeId
       if (investmentId) params.investment_id = investmentId
       const res = await client.get('/investment-details', { params })
-      setEntries(res.data)
+      setEntries((res.data.items ?? []).map(mapInvestmentDetail))
     } catch (err) {
       setFetchError(err.response?.data?.detail ?? 'Failed to load report data')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [investmentTypeId, investmentId])
 
   useEffect(() => {
     fetchEntries(fromDate, toDate, companyId)
@@ -51,21 +60,25 @@ function UserDashboard() {
 
   // Fetch investment types when a company is selected
   useEffect(() => {
+    setInvestmentTypeId('')
+    setInvestmentId('')
+    setInvestments([])
     if (!companyId) {
       setInvestmentTypes([])
-      setInvestmentTypeId('')
       return
     }
-    client.get('/investment-types', { params: { company_id: companyId } })
+    client.get('/investments/options/investment-types', {
+      params: { asset_management_company_id: companyId },
+    })
       .then((res) => setInvestmentTypes(res.data))
       .catch(() => setInvestmentTypes([]))
   }, [companyId])
 
   // Fetch investments when investment type is selected
   useEffect(() => {
+    setInvestmentId('')
     if (!companyId || !investmentTypeId) {
       setInvestments([])
-      setInvestmentId('')
       return
     }
     client.get('/investment-details/options/investments', {
@@ -89,74 +102,76 @@ function UserDashboard() {
           <h1 className="mb-8 text-2xl font-bold text-gray-800">My Investment</h1>
 
           {/* Date range filter */}
-          <form onSubmit={handleFilterSubmit} className="mb-6 flex flex-wrap items-end gap-3">
-            <div>
-              <label className="mb-1 block text-xs text-gray-600">From</label>
-              <input
-                type="date"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+          <form onSubmit={handleFilterSubmit} className="mb-6 rounded border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600">From</label>
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) => setFromDate(e.target.value)}
+                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600">To</label>
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) => setToDate(e.target.value)}
+                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600">AMC</label>
+                <select
+                  value={companyId}
+                  onChange={(e) => setCompanyId(e.target.value)}
+                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">All AMCs</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600">Investment Type</label>
+                <select
+                  value={investmentTypeId}
+                  onChange={(e) => setInvestmentTypeId(e.target.value)}
+                  disabled={!companyId}
+                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
+                >
+                  <option value="">All Types</option>
+                  {investmentTypes.map((t) => (
+                    <option key={t.id} value={t.id}>{t.investment_type_name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-600">Investment</label>
+                <select
+                  value={investmentId}
+                  onChange={(e) => setInvestmentId(e.target.value)}
+                  disabled={!companyId || !investmentTypeId}
+                  className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
+                >
+                  <option value="">All Investments</option>
+                  {investments.map((inv) => (
+                    <option key={inv.id} value={inv.id}>{inv.investment_code}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div>
-              <label className="mb-1 block text-xs text-gray-600">To</label>
-              <input
-                type="date"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className="rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs text-gray-600">Company</label>
-              <select
-                value={companyId}
-                onChange={(e) => setCompanyId(e.target.value)}
-                className="rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            <div className="mt-4 flex justify-end">
+              <button
+                type="submit"
+                className="rounded bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
               >
-                <option value="">All Companies</option>
-                {companies.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            {/* Investment Type Dropdown */}
-            <div>
-              <label className="mb-1 block text-xs text-gray-600">Investment Type</label>
-              <select
-                value={investmentTypeId}
-                onChange={(e) => setInvestmentTypeId(e.target.value)}
-                disabled={!companyId}
-                className="rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Types</option>
-                {investmentTypes.map((t) => (
-                  <option key={t.id} value={t.id}>{t.investment_type_name}</option>
-                ))}
-              </select>
+                Filter
+              </button>
             </div>
-            {/* Investment Dropdown */}
-            <div>
-              <label className="mb-1 block text-xs text-gray-600">Investment</label>
-              <select
-                value={investmentId}
-                onChange={(e) => setInvestmentId(e.target.value)}
-                disabled={!investmentTypeId}
-                className="rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">All Investments</option>
-                {investments.map((inv) => (
-                  <option key={inv.id} value={inv.id}>{inv.investment_code}</option>
-                ))}
-              </select>
-            </div>
-            </div>
-            <button
-              type="submit"
-              className="rounded bg-gray-700 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-            >
-              Filter
-            </button>
           </form>
 
           {fetchError && (
