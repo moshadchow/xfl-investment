@@ -9,7 +9,7 @@ function ReportTable({ data, loading }) {
         <thead>
           <tr className="bg-gray-100 text-left text-gray-600">
             <th className="px-4 py-2 font-medium">Date</th>
-            <th className="px-4 py-2 font-medium">Investment</th>
+            <th className="px-4 py-2 font-medium">Investment Amount</th>
             <th className="px-4 py-2 font-medium">Market Value</th>
             <th className="px-4 py-2 font-medium">NAV</th>
             <th className="px-4 py-2 font-medium">Gain/Loss</th>

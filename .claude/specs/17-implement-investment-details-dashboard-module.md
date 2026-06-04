@@ -26,6 +26,7 @@ Select Investment Type
 Load Investments
      ↓
 Display Investment Details
+
 Investment Performance Data Table
 
 Display historical investment valuation records with the following columns:
@@ -73,6 +74,7 @@ Display investment performance records in a paginated data table.
 Render the Gain/Loss chart using Recharts.
 Refresh table and chart automatically when filters change.
 Handle empty states, loading states, and API errors gracefully.
+
 Expected Outcome
 
 Users should be able to view historical investment valuation records, including Investment Amount, Market Value, NAV, and Gain/Loss, for selected investments. The dashboard should provide both tabular and graphical views of performance trends, enabling users to analyze investment growth or decline over time through an interactive Gain/Loss chart.

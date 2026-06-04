@@ -18,6 +18,10 @@ function UserDashboard() {
   const [entries, setEntries] = useState([])
   const [companies, setCompanies] = useState([])
   const [companyId, setCompanyId] = useState('')
+  const [investmentTypes, setInvestmentTypes] = useState([])
+  const [investmentTypeId, setInvestmentTypeId] = useState('')
+  const [investments, setInvestments] = useState([])
+  const [investmentId, setInvestmentId] = useState('')
   const [fromDate, setFromDate] = useState(firstOfMonth)
   const [toDate, setToDate] = useState(today)
   const [fetchError, setFetchError] = useState(null)
@@ -29,7 +33,9 @@ function UserDashboard() {
     try {
       const params = { from_date: from, to_date: to }
       if (cid) params.company_id = cid
-      const res = await client.get('/report', { params })
+      if (investmentTypeId) params.investment_type_id = investmentTypeId
+      if (investmentId) params.investment_id = investmentId
+      const res = await client.get('/investment-details', { params })
       setEntries(res.data)
     } catch (err) {
       setFetchError(err.response?.data?.detail ?? 'Failed to load report data')
@@ -42,6 +48,32 @@ function UserDashboard() {
     fetchEntries(fromDate, toDate, companyId)
     client.get('/companies/list').then((res) => setCompanies(res.data))
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Fetch investment types when a company is selected
+  useEffect(() => {
+    if (!companyId) {
+      setInvestmentTypes([])
+      setInvestmentTypeId('')
+      return
+    }
+    client.get('/investment-types', { params: { company_id: companyId } })
+      .then((res) => setInvestmentTypes(res.data))
+      .catch(() => setInvestmentTypes([]))
+  }, [companyId])
+
+  // Fetch investments when investment type is selected
+  useEffect(() => {
+    if (!companyId || !investmentTypeId) {
+      setInvestments([])
+      setInvestmentId('')
+      return
+    }
+    client.get('/investment-details/options/investments', {
+      params: { asset_management_company_id: companyId, investment_type_id: investmentTypeId },
+    })
+      .then((res) => setInvestments(res.data))
+      .catch(() => setInvestments([]))
+  }, [companyId, investmentTypeId])
 
   function handleFilterSubmit(e) {
     e.preventDefault()
@@ -88,6 +120,36 @@ function UserDashboard() {
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
+            {/* Investment Type Dropdown */}
+            <div>
+              <label className="mb-1 block text-xs text-gray-600">Investment Type</label>
+              <select
+                value={investmentTypeId}
+                onChange={(e) => setInvestmentTypeId(e.target.value)}
+                disabled={!companyId}
+                className="rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Types</option>
+                {investmentTypes.map((t) => (
+                  <option key={t.id} value={t.id}>{t.investment_type_name}</option>
+                ))}
+              </select>
+            </div>
+            {/* Investment Dropdown */}
+            <div>
+              <label className="mb-1 block text-xs text-gray-600">Investment</label>
+              <select
+                value={investmentId}
+                onChange={(e) => setInvestmentId(e.target.value)}
+                disabled={!investmentTypeId}
+                className="rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">All Investments</option>
+                {investments.map((inv) => (
+                  <option key={inv.id} value={inv.id}>{inv.investment_code}</option>
+                ))}
+              </select>
+            </div>
             </div>
             <button
               type="submit"

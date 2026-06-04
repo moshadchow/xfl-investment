@@ -14,8 +14,8 @@ function GainLossChart({ data }) {
   const chartData = sorted.map((entry) => ({
     date: entry.date,
     gainLoss:
-      entry.investment != null && entry.market_value != null
-        ? Number(entry.investment) - Number(entry.market_value)
+      entry.investment_amount != null && entry.market_value != null
+        ? Number(entry.market_value) - Number(entry.investment_amount)
         : 0,
   }))
 
