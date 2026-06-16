@@ -16,10 +16,6 @@ venv/
 env/
 ENV/
 
-# Environment secrets
-.env
-*.env
-!.env.example
 
 # IDE
 .vscode/

@@ -1,7 +1,8 @@
 import {
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
   CartesianGrid,
+  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -23,18 +24,22 @@ function GainLossChart({ data }) {
 
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <BarChart data={chartData} margin={{ top: 8, right: 24, left: 16, bottom: 8 }}>
+      <LineChart data={chartData} margin={{ top: 8, right: 24, left: 16, bottom: 8 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
         <XAxis dataKey="date" tick={{ fontSize: 12 }} />
         <YAxis tick={{ fontSize: 12 }} />
         <Tooltip formatter={(value) => formatBDT0(value)} />
-        <Bar
+        <Legend verticalAlign="bottom" height={36} wrapperStyle={{ paddingTop: 8 }} />
+        <Line
+          type="monotone"
           dataKey="gainLoss"
           name="Gain/Loss"
-          fill="#8b5cf6"
-          radius={[4, 4, 0, 0]}
+          stroke="#8b5cf6"
+          strokeWidth={2}
+          dot={{ r: 4, fill: '#8b5cf6' }}
+          activeDot={{ r: 6 }}
         />
-      </BarChart>
+      </LineChart>
     </ResponsiveContainer>
   )
 }
